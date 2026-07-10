@@ -14,6 +14,16 @@ vi.mock("#/features/documents/document-repository", () => ({
 
 import { createDocumentRouter } from "./documents";
 
+const id = "11111111-1111-4111-8111-111111111111";
+const indexData = {
+	schemaVersion: 1 as const,
+	exportedAt: "2026-07-10T08:00:00.000Z",
+	title: "INDEX",
+	rowsPerPage: 10 as const,
+	showPageNo: false,
+	entries: [],
+};
+
 function service() {
 	return {
 		list: vi.fn(() => Promise.resolve([])),
@@ -35,10 +45,33 @@ describe("document procedures", () => {
 			context: { headers: new Headers({ cookie: "missing" }) },
 		});
 
-		await expect(client.list({})).rejects.toMatchObject({
-			code: "UNAUTHORIZED",
-		});
-		expect(documentService.list).not.toHaveBeenCalled();
+		const calls = [
+			() => client.list({}),
+			() => client.get({ id, type: "index_sheet" }),
+			() =>
+				client.create({
+					type: "index_sheet",
+					title: "INDEX",
+					data: indexData,
+					logoDataUrl: null,
+				}),
+			() =>
+				client.update({
+					id,
+					type: "index_sheet",
+					title: "INDEX",
+					data: indexData,
+					logoDataUrl: null,
+				}),
+			() => client.duplicate({ id }),
+			() => client.remove({ id }),
+		];
+		for (const call of calls) {
+			await expect(call()).rejects.toMatchObject({ code: "UNAUTHORIZED" });
+		}
+		for (const method of Object.values(documentService)) {
+			expect(method).not.toHaveBeenCalled();
+		}
 		expect(getSessionMock).toHaveBeenCalledWith(expect.any(Headers));
 	});
 
@@ -54,7 +87,7 @@ describe("document procedures", () => {
 
 		await expect(
 			client.get({
-				id: "11111111-1111-4111-8111-111111111111",
+				id,
 				type: "index_sheet",
 			}),
 		).rejects.toMatchObject({
@@ -62,7 +95,7 @@ describe("document procedures", () => {
 			message: "Document not found.",
 		});
 		expect(documentService.get).toHaveBeenCalledWith("owner-1", {
-			id: "11111111-1111-4111-8111-111111111111",
+			id,
 			type: "index_sheet",
 		});
 	});

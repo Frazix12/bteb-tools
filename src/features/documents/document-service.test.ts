@@ -53,6 +53,12 @@ describe("document service ownership", () => {
 		const service = createDocumentService(repo);
 
 		await service.list("owner-1");
+		await service.create("owner-1", {
+			type: "index_sheet",
+			title: "INDEX",
+			data: indexData,
+			logoDataUrl: null,
+		});
 		await service.get("owner-1", { id: record.id, type: "index_sheet" });
 		await service.update("owner-1", {
 			id: record.id,
@@ -65,6 +71,9 @@ describe("document service ownership", () => {
 		await service.remove("owner-1", record.id);
 
 		expect(repo.list).toHaveBeenCalledWith("owner-1");
+		expect(repo.create).toHaveBeenCalledWith(
+			expect.objectContaining({ ownerId: "owner-1", type: "index_sheet" }),
+		);
 		expect(repo.get).toHaveBeenCalledWith(record.id, "owner-1");
 		expect(repo.update).toHaveBeenCalledWith(
 			expect.objectContaining({ id: record.id, ownerId: "owner-1" }),

@@ -29,11 +29,8 @@ export const duplicateDocumentMutationOptions = (queryClient: QueryClient) =>
 	orpc.documents.duplicate.mutationOptions({
 		onSuccess: () => cacheActions(queryClient).listChanged(),
 	});
-export const removeDocumentMutationOptions = (
-	queryClient: QueryClient,
-	type: DocumentType,
-) =>
+export const removeDocumentMutationOptions = (queryClient: QueryClient) =>
 	orpc.documents.remove.mutationOptions({
-		onSuccess: (_document, input) =>
-			cacheActions(queryClient).removed(input.id, type),
+		onSuccess: (document) =>
+			cacheActions(queryClient).removed(document.id, document.type),
 	});

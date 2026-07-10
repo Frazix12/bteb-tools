@@ -28,6 +28,7 @@ describe("document cache actions", () => {
 	test("removes deleted detail data and refreshes the list", async () => {
 		const queryClient = new QueryClient();
 		const removeQueries = vi.spyOn(queryClient, "removeQueries");
+		const invalidateQueries = vi.spyOn(queryClient, "invalidateQueries");
 		const cache = createDocumentCacheActions(queryClient, {
 			list: ["documents", "list"],
 			detail: (id, type) => ["documents", type, id],
@@ -37,6 +38,9 @@ describe("document cache actions", () => {
 
 		expect(removeQueries).toHaveBeenCalledWith({
 			queryKey: ["documents", "cover_page", "doc-1"],
+		});
+		expect(invalidateQueries).toHaveBeenCalledWith({
+			queryKey: ["documents", "list"],
 		});
 	});
 });
