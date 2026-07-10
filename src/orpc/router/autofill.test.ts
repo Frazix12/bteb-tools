@@ -38,7 +38,35 @@ describe("autofill procedures", () => {
 		await expect(
 			client.extract({ type: "cover_page", text: "tiny" }),
 		).rejects.toBeDefined();
+		await expect(
+			client.extract({ type: "cover_page", text: "a".repeat(20_001) }),
+		).rejects.toBeDefined();
 		expect(consumeQuota).not.toHaveBeenCalled();
+	});
+
+	test.each([
+		10, 20_000,
+	])("accepts the %i-character text boundary", async (size) => {
+		getSessionMock.mockResolvedValue({ user: { id: "owner-1" }, session: {} });
+		const extract = vi.fn().mockResolvedValue({
+			type: "index_sheet",
+			patch: { entries: [{ name: "Test" }] },
+			extractedFieldCount: 1,
+			warnings: [],
+		});
+		const client = createRouterClient(
+			createAutofillRouter({
+				consumeQuota: vi
+					.fn()
+					.mockResolvedValue({ allowed: true, remaining: 9, retryAt: null }),
+				extract,
+			}),
+			{ context: { headers: new Headers() } },
+		);
+
+		await expect(
+			client.extract({ type: "index_sheet", text: "a".repeat(size) }),
+		).resolves.toBeDefined();
 	});
 
 	test("consumes owner quota then returns extraction without persistence", async () => {

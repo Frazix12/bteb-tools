@@ -8,7 +8,9 @@ export const env = createEnv({
 		BETTER_AUTH_URL: z.string().url(),
 		SERVER_URL: z.string().url().optional(),
 		GEMINI_API_KEY: z.string().min(1).optional(),
-		GEMINI_MODEL: z.string().min(1).default("gemini-2.5-flash-lite"),
+		GEMINI_MODEL: z
+			.enum(["gemini-2.5-flash-lite", "gemini-2.5-flash"])
+			.default("gemini-2.5-flash-lite"),
 	},
 
 	/**

@@ -59,6 +59,17 @@ describe("autofill extraction", () => {
 			invalid("index_sheet", "A sufficiently long input"),
 		).rejects.toBeInstanceOf(ProviderAutofillError);
 
+		const invented = createAutofillExtractor(
+			vi.fn().mockResolvedValue({
+				instituteName: "Institute",
+				docType: "Assignment",
+				submittedBy: { name: "Student", inventedIdentity: "fake" },
+			}),
+		);
+		await expect(
+			invented("cover_page", "A sufficiently long input"),
+		).rejects.toBeInstanceOf(ProviderAutofillError);
+
 		const failed = createAutofillExtractor(
 			vi.fn().mockRejectedValue(new Error("API key secret and upstream body")),
 		);

@@ -8,29 +8,31 @@ import { buildAutofillPrompt } from "./prompts";
 const optionalText = (maximum: number) => z.string().max(maximum).optional();
 const optionalDate = z.union([z.literal(""), z.iso.date()]).optional();
 
-export const IndexAutofillPatchSchema = z.object({
-	title: optionalText(200),
-	showPageNo: z.boolean().optional(),
-	entries: z
-		.array(
-			z.object({
-				name: optionalText(5_000),
-				issueDate: optionalDate,
-				submitDate: optionalDate,
-				pageNo: optionalText(100),
-			}),
-		)
-		.max(200)
-		.optional(),
-});
+export const IndexAutofillPatchSchema = z
+	.object({
+		title: optionalText(200),
+		showPageNo: z.boolean().optional(),
+		entries: z
+			.array(
+				z.strictObject({
+					name: optionalText(5_000),
+					issueDate: optionalDate,
+					submitDate: optionalDate,
+					pageNo: optionalText(100),
+				}),
+			)
+			.max(200)
+			.optional(),
+	})
+	.strict();
 
-export const CoverAutofillPatchSchema = z.object({
+export const CoverAutofillPatchSchema = z.strictObject({
 	instituteName: optionalText(5_000),
 	instituteShort: optionalText(500),
 	department: optionalText(5_000),
 	docType: optionalText(500),
 	submittedBy: z
-		.object({
+		.strictObject({
 			name: optionalText(5_000),
 			regNo: optionalText(200),
 			roll: optionalText(200),
@@ -41,7 +43,7 @@ export const CoverAutofillPatchSchema = z.object({
 		})
 		.optional(),
 	submittedTo: z
-		.object({
+		.strictObject({
 			name: optionalText(5_000),
 			designation: optionalText(5_000),
 			department: optionalText(5_000),
