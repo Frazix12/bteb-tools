@@ -23,6 +23,27 @@
 	color: #1a1a1a;
 	font-family: "Noto Sans", "Noto Sans Bengali", sans-serif;
 	padding: 12mm 10mm;
+	overflow-wrap: normal;
+}
+
+.editor-layout {
+	display: grid;
+	grid-template-columns: 1fr;
+}
+
+.preview-host {
+	overflow: auto;
+	padding: 16px 10px 60px;
+}
+
+@media (min-width: 900px) {
+	.editor-layout {
+		grid-template-columns: 380px 1fr;
+	}
+
+	.preview-host {
+		padding: 32px;
+	}
 }
 
 .index-preview-wrap {
@@ -31,7 +52,8 @@
 	align-items: center;
 	gap: 28px;
 }
-.index-page-border {
+.index-page-border,
+.cover-page-border {
 	position: relative;
 	display: flex;
 	height: 100%;
@@ -135,11 +157,6 @@
 .cover-preview-wrap {
 	display: flex;
 	justify-content: center;
-}
-.cover-page-border {
-	height: 100%;
-	border: 1.4px solid #2b2b2b;
-	padding: 8mm 8mm 10mm;
 }
 .cover-page-inner {
 	display: flex;
@@ -264,6 +281,23 @@
 @media print {
 	[data-print-hidden] {
 		display: none !important;
+	}
+
+	[data-editor-main] {
+		display: block !important;
+		width: 210mm;
+		min-height: 0;
+		margin: 0;
+		padding: 0;
+		background: #fff;
+	}
+
+	[data-preview-host] {
+		display: block !important;
+		width: 210mm;
+		margin: 0;
+		padding: 0 !important;
+		overflow: visible;
 	}
 
 	@page {

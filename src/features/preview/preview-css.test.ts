@@ -1,0 +1,26 @@
+import { readFileSync } from "node:fs";
+import { describe, expect, test } from "vitest";
+
+const css = readFileSync(new URL("./preview.css", import.meta.url), "utf8");
+
+describe("print layout contract", () => {
+	test("resets the editor shell and preview host around the A4 page", () => {
+		expect(css).toMatch(
+			/\[data-editor-main\][\s\S]*display:\s*block\s*!important/,
+		);
+		expect(css).toMatch(
+			/\[data-preview-host\][\s\S]*padding:\s*0\s*!important/,
+		);
+		expect(css).toMatch(/\[data-preview-host\][\s\S]*width:\s*210mm/);
+	});
+
+	test("prevents global emergency wrapping from changing print typography", () => {
+		expect(css).toMatch(/\.a4-page\s*\{[\s\S]*overflow-wrap:\s*normal/);
+	});
+
+	test("keeps the cover border structurally equivalent to the index border", () => {
+		expect(css).toMatch(
+			/\.index-page-border,\s*\.cover-page-border\s*\{[\s\S]*display:\s*flex[\s\S]*flex-direction:\s*column/,
+		);
+	});
+});

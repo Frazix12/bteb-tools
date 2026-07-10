@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as VisualFixturesRouteImport } from './routes/visual-fixtures'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AuthRouteImport } from './routes/_auth'
@@ -22,6 +23,11 @@ import { Route as AuthIndexSheetIdRouteImport } from './routes/_auth/index-sheet
 import { Route as AuthCoverPageNewRouteImport } from './routes/_auth/cover-page/new'
 import { Route as AuthCoverPageIdRouteImport } from './routes/_auth/cover-page/$id'
 
+const VisualFixturesRoute = VisualFixturesRouteImport.update({
+  id: '/visual-fixtures',
+  path: '/visual-fixtures',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SignupRoute = SignupRouteImport.update({
   id: '/signup',
   path: '/signup',
@@ -86,6 +92,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
+  '/visual-fixtures': typeof VisualFixturesRoute
   '/dashboard': typeof AuthDashboardRoute
   '/api/$': typeof ApiSplatRoute
   '/cover-page/$id': typeof AuthCoverPageIdRoute
@@ -99,6 +106,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
+  '/visual-fixtures': typeof VisualFixturesRoute
   '/dashboard': typeof AuthDashboardRoute
   '/api/$': typeof ApiSplatRoute
   '/cover-page/$id': typeof AuthCoverPageIdRoute
@@ -114,6 +122,7 @@ export interface FileRoutesById {
   '/_auth': typeof AuthRouteWithChildren
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
+  '/visual-fixtures': typeof VisualFixturesRoute
   '/_auth/dashboard': typeof AuthDashboardRoute
   '/api/$': typeof ApiSplatRoute
   '/_auth/cover-page/$id': typeof AuthCoverPageIdRoute
@@ -129,6 +138,7 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/signup'
+    | '/visual-fixtures'
     | '/dashboard'
     | '/api/$'
     | '/cover-page/$id'
@@ -142,6 +152,7 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/signup'
+    | '/visual-fixtures'
     | '/dashboard'
     | '/api/$'
     | '/cover-page/$id'
@@ -156,6 +167,7 @@ export interface FileRouteTypes {
     | '/_auth'
     | '/login'
     | '/signup'
+    | '/visual-fixtures'
     | '/_auth/dashboard'
     | '/api/$'
     | '/_auth/cover-page/$id'
@@ -171,6 +183,7 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRouteWithChildren
   LoginRoute: typeof LoginRoute
   SignupRoute: typeof SignupRoute
+  VisualFixturesRoute: typeof VisualFixturesRoute
   ApiSplatRoute: typeof ApiSplatRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   ApiRpcSplatRoute: typeof ApiRpcSplatRoute
@@ -178,6 +191,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/visual-fixtures': {
+      id: '/visual-fixtures'
+      path: '/visual-fixtures'
+      fullPath: '/visual-fixtures'
+      preLoaderRoute: typeof VisualFixturesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/signup': {
       id: '/signup'
       path: '/signup'
@@ -288,6 +308,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRouteWithChildren,
   LoginRoute: LoginRoute,
   SignupRoute: SignupRoute,
+  VisualFixturesRoute: VisualFixturesRoute,
   ApiSplatRoute: ApiSplatRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   ApiRpcSplatRoute: ApiRpcSplatRoute,
@@ -295,3 +316,12 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { createStart } from '@tanstack/react-start'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+  }
+}

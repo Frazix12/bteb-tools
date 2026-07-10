@@ -122,7 +122,10 @@ export function CoverPageEditor({
 	};
 
 	return (
-		<main className="grid min-h-[calc(100vh-4rem)] grid-cols-1 bg-muted/30 lg:grid-cols-[400px_1fr]">
+		<main
+			className="editor-layout min-h-[calc(100vh-4rem)] bg-muted/30"
+			data-editor-main
+		>
 			<section className="border-r bg-background p-5" data-print-hidden>
 				<Card className="border-0 bg-transparent shadow-none">
 					<CardHeader className="px-0 pt-0">
@@ -186,7 +189,7 @@ export function CoverPageEditor({
 					</CardContent>
 				</Card>
 			</section>
-			<section className="overflow-auto p-4 sm:p-8">
+			<section className="preview-host" data-preview-host>
 				<CoverPagePreview data={data} />
 			</section>
 		</main>
