@@ -27,15 +27,38 @@ for (const viewport of RESPONSIVE_VIEWPORTS) {
 					const host = document.querySelector<HTMLElement>("[data-preview-host]");
 					if (!host) return false;
 					const hostBox = host.getBoundingClientRect();
-					const availableHeight = window.innerHeight - hostBox.top;
+					const style = getComputedStyle(host);
+					const paddingTop = Number.parseFloat(style.paddingTop);
+					const paddingRight = Number.parseFloat(style.paddingRight);
+					const paddingBottom = Number.parseFloat(style.paddingBottom);
+					const paddingLeft = Number.parseFloat(style.paddingLeft);
+					const contentTop = hostBox.top + paddingTop;
+					const contentLeft = hostBox.left + paddingLeft;
+					const contentRight = hostBox.right - paddingRight;
+					const availableHeight =
+						window.innerHeight - contentTop - paddingBottom;
 					return Array.from(
 						document.querySelectorAll<HTMLElement>(".page-frame"),
 					).every((frame) => {
-						const box = frame.getBoundingClientRect();
+						const frameBox = frame.getBoundingClientRect();
+						const renderedPage = frame.querySelector<HTMLElement>(".a4-page");
+						if (!renderedPage) return false;
+						const pageBox = renderedPage.getBoundingClientRect();
+						const transform = getComputedStyle(renderedPage).transform;
+						const scale = transform === "none" ? 1 : new DOMMatrix(transform).a;
+						const sameBounds =
+							Math.abs(pageBox.left - frameBox.left) <= 0.5 &&
+							Math.abs(pageBox.top - frameBox.top) <= 0.5 &&
+							Math.abs(pageBox.right - frameBox.right) <= 0.5 &&
+							Math.abs(pageBox.bottom - frameBox.bottom) <= 0.5;
 						return (
-							box.left >= hostBox.left &&
-							box.right <= hostBox.right &&
-							box.height <= availableHeight
+							frameBox.left >= contentLeft &&
+							frameBox.right <= contentRight &&
+							frameBox.top >= contentTop &&
+							frameBox.bottom <= frameBox.top + availableHeight &&
+							scale > 0 &&
+							scale <= 1 &&
+							sameBounds
 						);
 					});
 				}),
@@ -43,11 +66,19 @@ for (const viewport of RESPONSIVE_VIEWPORTS) {
 		)
 			.toBe(true);
 
-		await expect(page.locator("sup").first()).toContainText("2");
-		const namesFit = await page.locator(".idx-cell.name").evaluateAll((cells) =>
-			cells.every((cell) => cell.scrollHeight <= cell.clientHeight),
-		);
-		expect(namesFit).toBe(true);
+		const stressedName = page.locator(".auto-fit-experiment-name").first();
+		const exponents = stressedName.locator("sup");
+		await expect(exponents).toHaveCount(5);
+		await expect(exponents).toHaveText(["2", "2", "2", "2", "2"]);
+		await expect
+			.poll(
+				() =>
+					page.locator(".auto-fit-experiment-name").evaluateAll((names) =>
+						names.every((name) => name.scrollHeight <= name.clientHeight),
+					),
+				{ timeout: 15_000 },
+			)
+			.toBe(true);
 	});
 }
 

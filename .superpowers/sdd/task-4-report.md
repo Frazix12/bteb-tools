@@ -34,3 +34,19 @@ Results:
 - Assertions wait for observer-driven scaling under parallel browser load and then inspect every page/name cell.
 - No native A4 dimensions, print CSS geometry, minimum auto-fit font size, or snapshots changed.
 - Concerns: none.
+
+## Review fixes
+
+- Changed overflow checks from the clipping `.idx-cell.name` parent to every inner `.auto-fit-experiment-name`, with polling for `ResizeObserver` completion.
+- Included preview-host padding in horizontal and vertical content bounds and asserted each frame's actual top/bottom against its viewport-height budget.
+- Scoped exponent checks to the first stressed name and asserted exactly five superscripts, each containing `2`.
+- Asserted every computed preview scale is within `(0, 1]` and every transformed `.a4-page` edge coincides with its `.page-frame` edge within 0.5px, detecting internal clipping.
+- Reserved the existing 4px scale gutter as short-landscape bottom padding so the transformed page remains inside the padded viewport budget; print CSS is unchanged.
+
+Review verification:
+
+- `bun x playwright test tests/visual/print-layout.spec.ts --grep 'fits'` — 4 passed.
+- `bun run test:visual` — 8 passed.
+- `bun run test src/features/preview/preview-css.test.ts` — 1 file passed, 4 tests passed.
+- `bun run check` — 105 files checked, no fixes required.
+- `bun x tsc --noEmit` — passed with exit code 0.
