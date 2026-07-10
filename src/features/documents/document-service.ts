@@ -32,7 +32,11 @@ export interface DocumentRepository {
 	update(
 		input: DocumentWrite & { id: string; ownerId: string },
 	): Promise<DocumentRecord | null>;
-	duplicate(id: string, ownerId: string): Promise<DocumentRecord | null>;
+	duplicate(
+		id: string,
+		ownerId: string,
+		validate: (record: DocumentRecord) => DocumentRecord,
+	): Promise<DocumentRecord | null>;
 	remove(id: string, ownerId: string): Promise<DocumentRecord | null>;
 }
 
@@ -101,7 +105,7 @@ export function createDocumentService(repository: DocumentRepository) {
 			return validateRecord(document);
 		},
 		async duplicate(ownerId: string, id: string) {
-			const document = await repository.duplicate(id, ownerId);
+			const document = await repository.duplicate(id, ownerId, validateRecord);
 			if (!document) throw new DocumentNotFoundError();
 			return validateRecord(document);
 		},
@@ -112,3 +116,5 @@ export function createDocumentService(repository: DocumentRepository) {
 		},
 	};
 }
+
+export type DocumentService = ReturnType<typeof createDocumentService>;

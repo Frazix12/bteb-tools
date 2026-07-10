@@ -45,7 +45,7 @@ export const drizzleDocumentRepository: DocumentRepository = {
 			.returning();
 		return row ? toRecord(row) : null;
 	},
-	async duplicate(id, ownerId) {
+	async duplicate(id, ownerId, validate) {
 		return db.transaction(async (tx) => {
 			const [source] = await tx
 				.select()
@@ -53,13 +53,14 @@ export const drizzleDocumentRepository: DocumentRepository = {
 				.where(and(eq(documents.id, id), eq(documents.ownerId, ownerId)))
 				.limit(1);
 			if (!source) return null;
+			const validSource = validate(toRecord(source));
 
 			const copy: DocumentWrite & { ownerId: string } = {
 				ownerId,
-				type: source.type,
-				title: `${source.title} (Copy)`,
-				data: source.data as DocumentData,
-				logoDataUrl: source.logoDataUrl,
+				type: validSource.type,
+				title: `${validSource.title} (Copy)`,
+				data: validSource.data,
+				logoDataUrl: validSource.logoDataUrl,
 			};
 			const [row] = await tx.insert(documents).values(copy).returning();
 			return row ? toRecord(row) : null;

@@ -36,7 +36,13 @@ function repository() {
 		get,
 		create: vi.fn(() => Promise.resolve(record)),
 		update: vi.fn(() => Promise.resolve(record)),
-		duplicate: vi.fn(() => Promise.resolve(record)),
+		duplicate: vi.fn(
+			(
+				_id: string,
+				_ownerId: string,
+				validate: (value: DocumentRecord) => DocumentRecord,
+			) => Promise.resolve(validate(record)),
+		),
 		remove: vi.fn(() => Promise.resolve(record)),
 	};
 }
@@ -63,7 +69,11 @@ describe("document service ownership", () => {
 		expect(repo.update).toHaveBeenCalledWith(
 			expect.objectContaining({ id: record.id, ownerId: "owner-1" }),
 		);
-		expect(repo.duplicate).toHaveBeenCalledWith(record.id, "owner-1");
+		expect(repo.duplicate).toHaveBeenCalledWith(
+			record.id,
+			"owner-1",
+			expect.any(Function),
+		);
 		expect(repo.remove).toHaveBeenCalledWith(record.id, "owner-1");
 	});
 
@@ -100,5 +110,17 @@ describe("document service ownership", () => {
 		await expect(
 			service.get("owner-1", { id: record.id, type: "index_sheet" }),
 		).rejects.toThrow("Stored document data is invalid");
+	});
+
+	test("validates a duplicate source before the repository copies it", async () => {
+		const repo = repository();
+		repo.duplicate.mockImplementation((_id, _ownerId, validate) =>
+			Promise.resolve(validate({ ...record, data: {} as IndexSheetData })),
+		);
+		const service = createDocumentService(repo);
+
+		await expect(service.duplicate("owner-1", record.id)).rejects.toThrow(
+			"Stored document data is invalid",
+		);
 	});
 });
