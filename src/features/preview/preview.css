@@ -1,0 +1,72 @@
+/* biome-ignore-all lint/complexity/noImportantStyles: Important declarations are required to override inline preview scaling and preserve reference print parity. */
+/* biome-ignore-all lint/style/noDescendingSpecificity: Selector order intentionally mirrors the reference A4 stylesheet. */
+.page-frame {
+	position: relative;
+	overflow: hidden;
+	box-shadow: 0 2px 18px rgba(0, 0, 0, 0.15);
+}
+
+.page-frame .a4-page {
+	position: absolute;
+	top: 0;
+	left: 0;
+	transform-origin: top left;
+	box-sizing: border-box;
+}
+
+.a4-page {
+	position: relative;
+	width: 210mm;
+	height: 297mm;
+	background: #fff;
+	box-shadow: 0 2px 18px rgba(0, 0, 0, 0.15);
+	color: #1a1a1a;
+	font-family: "Noto Sans", "Noto Sans Bengali", sans-serif;
+}
+
+@media print {
+	[data-print-hidden] {
+		display: none !important;
+	}
+
+	@page {
+		size: A4;
+		margin: 0;
+	}
+
+	html,
+	body {
+		background: #fff;
+		-webkit-print-color-adjust: exact !important;
+		print-color-adjust: exact !important;
+		color-adjust: exact !important;
+	}
+
+	* {
+		-webkit-print-color-adjust: exact !important;
+		print-color-adjust: exact !important;
+		color-adjust: exact !important;
+	}
+
+	.page-frame {
+		width: 210mm !important;
+		height: 297mm !important;
+		box-shadow: none;
+		overflow: hidden;
+		page-break-after: always;
+		page-break-inside: avoid;
+	}
+
+	.page-frame:last-child {
+		page-break-after: auto;
+	}
+
+	.a4-page {
+		position: relative;
+		width: 210mm;
+		height: 297mm;
+		margin: 0;
+		box-shadow: none;
+		transform: none !important;
+	}
+}
