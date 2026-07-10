@@ -1,10 +1,11 @@
-import { useEffect } from "react";
+import { useBlocker } from "@tanstack/react-router";
 
 export function useUnsavedWarning(isDirty: boolean) {
-	useEffect(() => {
-		if (!isDirty) return;
-		const warn = (event: BeforeUnloadEvent) => event.preventDefault();
-		window.addEventListener("beforeunload", warn);
-		return () => window.removeEventListener("beforeunload", warn);
-	}, [isDirty]);
+	useBlocker({
+		disabled: !isDirty,
+		enableBeforeUnload: isDirty,
+		shouldBlockFn: () =>
+			isDirty &&
+			!window.confirm("You have unsaved changes. Leave without saving?"),
+	});
 }
