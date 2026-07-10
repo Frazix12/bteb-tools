@@ -1,6 +1,7 @@
 import { A4Page } from "#/features/preview/a4-page";
 import type { IndexSheetData } from "#/orpc/schemas/document";
 
+import { AutoFitExperimentName } from "./auto-fit-experiment-name";
 import { formatIndexDate } from "./format-date";
 import { paginateIndexEntries } from "./paginate";
 
@@ -56,7 +57,7 @@ export function IndexSheetPreview({ data }: { data: IndexSheetData }) {
 										>
 											<div className="idx-cell si">{row.sequence}</div>
 											<div className="idx-cell name">
-												{row.entry?.name ?? ""}
+												<AutoFitExperimentName value={row.entry?.name ?? ""} />
 											</div>
 											{data.showPageNo && (
 												<div className="idx-cell date">
