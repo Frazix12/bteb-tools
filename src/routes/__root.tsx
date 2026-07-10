@@ -33,6 +33,18 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
 		],
 		links: [
 			{
+				rel: "preconnect",
+				href: "https://fonts.googleapis.com",
+			},
+			{
+				rel: "stylesheet",
+				href: "https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@400;500;600;700&family=Noto+Sans:wght@400;500;600;700&display=swap",
+			},
+			{
+				rel: "stylesheet",
+				href: "https://fonts.maateen.me/kalpurush/font.css",
+			},
+			{
 				rel: "stylesheet",
 				href: appCss,
 			},

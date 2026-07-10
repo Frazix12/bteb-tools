@@ -101,6 +101,41 @@ describe("document service ownership", () => {
 		expect(repo.create).not.toHaveBeenCalled();
 	});
 
+	test("does not allow an update to change an existing document type", async () => {
+		const repo = repository();
+		const service = createDocumentService(repo);
+
+		await expect(
+			service.update("owner-1", {
+				id: record.id,
+				type: "cover_page",
+				title: "Cover Page",
+				data: {
+					schemaVersion: 1,
+					exportedAt: "2026-07-10T08:00:00.000Z",
+					type: "cover-page",
+					instituteName: "",
+					instituteShort: "",
+					department: "",
+					docType: "Assignment",
+					logoDataUrl: "",
+					submittedBy: {
+						name: "",
+						regNo: "",
+						roll: "",
+						subjectName: "",
+						subjectCode: "",
+						session: "",
+						semester: "",
+					},
+					submittedTo: { name: "", designation: "", department: "" },
+				},
+				logoDataUrl: null,
+			}),
+		).rejects.toBeInstanceOf(DocumentNotFoundError);
+		expect(repo.update).not.toHaveBeenCalled();
+	});
+
 	test("uses the same not-found error for missing and foreign records", async () => {
 		const repo = repository();
 		repo.get.mockResolvedValue(null);

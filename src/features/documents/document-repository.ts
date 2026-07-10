@@ -37,11 +37,17 @@ export const drizzleDocumentRepository: DocumentRepository = {
 		return toRecord(row);
 	},
 	async update(input) {
-		const { id, ownerId, ...values } = input;
+		const { id, ownerId, type, ...values } = input;
 		const [row] = await db
 			.update(documents)
 			.set({ ...values, updatedAt: new Date() })
-			.where(and(eq(documents.id, id), eq(documents.ownerId, ownerId)))
+			.where(
+				and(
+					eq(documents.id, id),
+					eq(documents.ownerId, ownerId),
+					eq(documents.type, type),
+				),
+			)
 			.returning();
 		return row ? toRecord(row) : null;
 	},

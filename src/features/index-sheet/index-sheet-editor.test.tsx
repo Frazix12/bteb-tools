@@ -233,4 +233,20 @@ describe("index sheet editor", () => {
 			expect.objectContaining({ title: "INDEX" }),
 		);
 	});
+
+	test("normalizes a blank title in the saved local draft", async () => {
+		const onSave = vi.fn().mockResolvedValue(undefined);
+		const onDirtyChange = vi.fn();
+		renderEditor({ onSave, onDirtyChange });
+		fireEvent.change(screen.getByLabelText("Sheet title"), {
+			target: { value: "   " },
+		});
+		fireEvent.click(screen.getByRole("button", { name: "Save sheet" }));
+
+		expect(await screen.findByDisplayValue("INDEX")).toBeTruthy();
+		expect(onSave).toHaveBeenCalledWith(
+			expect.objectContaining({ title: "INDEX" }),
+		);
+		expect(onDirtyChange).toHaveBeenLastCalledWith(false);
+	});
 });

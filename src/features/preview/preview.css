@@ -22,6 +22,9 @@
 	box-shadow: 0 2px 18px rgba(0, 0, 0, 0.15);
 	color: #1a1a1a;
 	font-family: "Noto Sans", "Noto Sans Bengali", sans-serif;
+	-webkit-font-smoothing: auto;
+	-moz-osx-font-smoothing: auto;
+	line-height: normal;
 	padding: 12mm 10mm;
 	overflow-wrap: normal;
 }

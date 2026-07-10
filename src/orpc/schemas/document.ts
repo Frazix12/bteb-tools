@@ -47,7 +47,7 @@ export const CoverPageDataSchema = z.object({
 	instituteName: text,
 	instituteShort: z.string().max(500),
 	department: text,
-	docType: z.string().max(500),
+	docType: z.string().max(200),
 	logoDataUrl: LogoDataUrlSchema,
 	submittedBy: SubmittedBySchema,
 	submittedTo: SubmittedToSchema,

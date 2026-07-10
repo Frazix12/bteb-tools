@@ -96,6 +96,10 @@ export function createDocumentService(repository: DocumentRepository) {
 			);
 		},
 		async update(ownerId: string, input: DocumentWrite & { id: string }) {
+			const existing = await repository.get(input.id, ownerId);
+			if (!existing || existing.type !== input.type) {
+				throw new DocumentNotFoundError();
+			}
 			const document = await repository.update({
 				ownerId,
 				...validateWrite(input),

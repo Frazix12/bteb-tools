@@ -124,8 +124,10 @@ export function IndexSheetEditor({
 	const save = async () => {
 		setMessage(null);
 		try {
-			await onSave(data);
-			initial.current = JSON.stringify(data);
+			const normalized = { ...data, title: data.title.trim() || "INDEX" };
+			await onSave(normalized);
+			changeData(normalized);
+			initial.current = JSON.stringify(normalized);
 			onDirtyChange?.(false);
 			setMessage("Sheet saved.");
 		} catch (error) {
