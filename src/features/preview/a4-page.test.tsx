@@ -27,13 +27,31 @@ describe("A4 preview scaling", () => {
 		expect(calculatePageScale(400)).toBeCloseTo(396 / A4_WIDTH_PX);
 	});
 
+	test("shrinks an A4 page to fit the available viewport height", () => {
+		expect(calculatePageScale(A4_WIDTH_PX + 200, 600)).toBeCloseTo(
+			596 / A4_HEIGHT_PX,
+		);
+	});
+
+	test("uses the smaller of the width and height ratios", () => {
+		expect(calculatePageScale(400, 300)).toBeCloseTo(296 / A4_HEIGHT_PX);
+	});
+
 	test("never enlarges an A4 page in a wide container", () => {
 		expect(calculatePageScale(A4_WIDTH_PX + 200)).toBe(1);
 	});
 
 	test("never returns a negative scale for a sub-gutter container", () => {
+		expect(calculatePageScale(0, 500)).toBe(0);
+		expect(calculatePageScale(-10, 500)).toBe(0);
 		expect(calculatePageScale(1)).toBe(0);
 		expect(calculatePageScale(3)).toBe(0);
+		expect(calculatePageScale(400, 0)).toBeCloseTo(396 / A4_WIDTH_PX);
+		expect(calculatePageScale(400, -10)).toBeCloseTo(396 / A4_WIDTH_PX);
+	});
+
+	test("never enlarges a page when both dimensions exceed A4", () => {
+		expect(calculatePageScale(A4_WIDTH_PX + 200, A4_HEIGHT_PX + 200)).toBe(1);
 	});
 
 	test("uses fixed CSS A4 dimensions", () => {
@@ -79,6 +97,21 @@ describe("A4Page", () => {
 			configurable: true,
 			value: 400,
 		});
+		wrap.getBoundingClientRect = vi.fn(() => ({
+			bottom: 0,
+			height: 0,
+			left: 0,
+			right: 0,
+			top: 100,
+			width: 400,
+			x: 0,
+			y: 100,
+			toJSON: () => ({}),
+		}));
+		Object.defineProperty(window, "innerHeight", {
+			configurable: true,
+			value: 500,
+		});
 
 		act(() =>
 			ResizeObserverStub.instances[0]?.callback(
@@ -88,7 +121,7 @@ describe("A4Page", () => {
 		);
 
 		expect(frame.style.width).toBe(
-			`${A4_WIDTH_PX * calculatePageScale(400)}px`,
+			`${A4_WIDTH_PX * calculatePageScale(400, 396)}px`,
 		);
 		unmount();
 		expect(ResizeObserverStub.instances[0]?.disconnect).toHaveBeenCalledOnce();

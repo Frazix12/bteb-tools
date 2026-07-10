@@ -24,3 +24,11 @@ describe("print layout contract", () => {
 		);
 	});
 });
+
+describe("short landscape preview layout", () => {
+	test("spans the editor grid and uses the viewport height budget", () => {
+		expect(css).toMatch(
+			/@media\s*\(orientation:\s*landscape\)\s*and\s*\(max-height:\s*700px\)[\s\S]*\[data-preview-host\]\s*\{[\s\S]*grid-column:\s*1\s*\/\s*-1[\s\S]*height:\s*calc\(100vh\s*-\s*4rem\)/,
+		);
+	});
+});

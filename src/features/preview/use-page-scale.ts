@@ -6,13 +6,17 @@ export const A4_HEIGHT_PX = 297 * CSS_MM_TO_PX;
 
 const PREVIEW_GUTTER_PX = 4;
 
-export function calculatePageScale(containerWidth: number) {
-	if (containerWidth <= 0) return 1;
-	const availableWidth = Math.max(
-		0,
-		Math.min(containerWidth, containerWidth - PREVIEW_GUTTER_PX),
-	);
-	return Math.min(1, availableWidth / A4_WIDTH_PX);
+export function calculatePageScale(
+	containerWidth: number,
+	availableHeight?: number,
+) {
+	const widthScale =
+		Math.max(0, containerWidth - PREVIEW_GUTTER_PX) / A4_WIDTH_PX;
+	const heightScale =
+		availableHeight !== undefined && availableHeight > 0
+			? Math.max(0, availableHeight - PREVIEW_GUTTER_PX) / A4_HEIGHT_PX
+			: 1;
+	return Math.min(1, widthScale, heightScale);
 }
 
 export function usePageScale() {
@@ -26,7 +30,11 @@ export function usePageScale() {
 
 		const updateScale = () => {
 			if (container.clientWidth > 0) {
-				setScale(calculatePageScale(container.clientWidth));
+				const availableHeight =
+					window.innerHeight -
+					container.getBoundingClientRect().top -
+					PREVIEW_GUTTER_PX;
+				setScale(calculatePageScale(container.clientWidth, availableHeight));
 			}
 		};
 

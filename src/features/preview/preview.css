@@ -289,6 +289,13 @@
 	background: #2b2b2b;
 }
 
+@media (orientation: landscape) and (max-height: 700px) {
+	[data-preview-host] {
+		grid-column: 1 / -1;
+		height: calc(100vh - 4rem);
+	}
+}
+
 @media print {
 	[data-print-hidden] {
 		display: none !important;
