@@ -1,10 +1,13 @@
 import {
 	boolean,
 	index,
+	jsonb,
+	pgEnum,
 	pgTable,
 	serial,
 	text,
 	timestamp,
+	uuid,
 } from "drizzle-orm/pg-core";
 
 export const todos = pgTable("todos", {
@@ -83,4 +86,34 @@ export const verification = pgTable(
 			.notNull(),
 	},
 	(table) => [index("verification_identifier_idx").on(table.identifier)],
+);
+
+export const documentTypeEnum = pgEnum("document_type", [
+	"index_sheet",
+	"cover_page",
+]);
+
+export const documents = pgTable(
+	"document",
+	{
+		id: uuid("id").defaultRandom().primaryKey(),
+		ownerId: text("owner_id")
+			.notNull()
+			.references(() => user.id, { onDelete: "cascade" }),
+		type: documentTypeEnum("type").notNull(),
+		title: text("title").notNull(),
+		data: jsonb("data").notNull(),
+		logoDataUrl: text("logo_data_url"),
+		createdAt: timestamp("created_at").defaultNow().notNull(),
+		updatedAt: timestamp("updated_at")
+			.defaultNow()
+			.$onUpdate(() => new Date())
+			.notNull(),
+	},
+	(table) => [
+		index("document_owner_updated_at_idx").on(
+			table.ownerId,
+			table.updatedAt.desc(),
+		),
+	],
 );
