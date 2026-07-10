@@ -1,4 +1,5 @@
 import {
+	bigserial,
 	boolean,
 	index,
 	jsonb,
@@ -114,6 +115,25 @@ export const documents = pgTable(
 		index("document_owner_updated_at_idx").on(
 			table.ownerId,
 			table.updatedAt.desc(),
+		),
+	],
+);
+
+export const autofillRateLimits = pgTable(
+	"autofill_rate_limit",
+	{
+		id: bigserial("id", { mode: "number" }).primaryKey(),
+		ownerId: text("owner_id")
+			.notNull()
+			.references(() => user.id, { onDelete: "cascade" }),
+		attemptedAt: timestamp("attempted_at", { withTimezone: true })
+			.defaultNow()
+			.notNull(),
+	},
+	(table) => [
+		index("autofill_rate_limit_owner_attempted_at_idx").on(
+			table.ownerId,
+			table.attemptedAt,
 		),
 	],
 );
