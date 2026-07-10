@@ -1,6 +1,8 @@
-import { addTodo, listTodos } from './todos'
+import { documentRouter } from "./documents";
+import { addTodo, listTodos } from "./todos";
 
 export default {
-  listTodos,
-  addTodo,
-}
+	documents: documentRouter,
+	listTodos,
+	addTodo,
+};

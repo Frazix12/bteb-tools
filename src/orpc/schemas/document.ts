@@ -56,3 +56,36 @@ export const CoverPageDataSchema = z.object({
 export type IndexSheetData = z.infer<typeof IndexSheetDataSchema>;
 export type CoverPageData = z.infer<typeof CoverPageDataSchema>;
 export type DocumentData = IndexSheetData | CoverPageData;
+
+export const DocumentTypeSchema = z.enum(["index_sheet", "cover_page"]);
+
+const IndexSheetWriteSchema = z.object({
+	type: z.literal("index_sheet"),
+	title: z.string().trim().min(1).max(200),
+	data: IndexSheetDataSchema,
+	logoDataUrl: z.null(),
+});
+
+const CoverPageWriteSchema = z.object({
+	type: z.literal("cover_page"),
+	title: z.string().trim().min(1).max(200),
+	data: CoverPageDataSchema,
+	logoDataUrl: z.union([LogoDataUrlSchema, z.null()]),
+});
+
+export const DocumentWriteSchema = z.discriminatedUnion("type", [
+	IndexSheetWriteSchema,
+	CoverPageWriteSchema,
+]);
+
+export const DocumentIdSchema = z.uuid();
+export const DocumentRecordSchema = z.object({
+	id: DocumentIdSchema,
+	ownerId: z.string(),
+	type: DocumentTypeSchema,
+	title: z.string(),
+	data: z.union([IndexSheetDataSchema, CoverPageDataSchema]),
+	logoDataUrl: z.string().nullable(),
+	createdAt: z.date(),
+	updatedAt: z.date(),
+});
