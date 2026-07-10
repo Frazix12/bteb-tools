@@ -9,8 +9,12 @@ export const env = createEnv({
 		SERVER_URL: z.string().url().optional(),
 		GEMINI_API_KEY: z.string().min(1).optional(),
 		GEMINI_MODEL: z
-			.enum(["gemini-2.5-flash-lite", "gemini-2.5-flash"])
-			.default("gemini-2.5-flash-lite"),
+			.enum([
+				"gemini-3.1-flash-lite",
+				"gemini-2.5-flash-lite",
+				"gemini-2.5-flash",
+			])
+			.default("gemini-3.1-flash-lite"),
 	},
 
 	/**

@@ -6,7 +6,13 @@ import type { DocumentType } from "#/features/documents/types";
 import { buildAutofillPrompt } from "./prompts";
 
 const optionalText = (maximum: number) => z.string().max(maximum).optional();
-const optionalDate = z.union([z.literal(""), z.iso.date()]).optional();
+const optionalDate = z
+	.string()
+	.refine(
+		(value) => value === "" || z.iso.date().safeParse(value).success,
+		"Expected an empty value or ISO date",
+	)
+	.optional();
 
 export const IndexAutofillPatchSchema = z
 	.object({
@@ -51,6 +57,48 @@ export const CoverAutofillPatchSchema = z.strictObject({
 		.optional(),
 });
 
+const providerText = z.string().optional();
+
+export const IndexAutofillProviderSchema = z.strictObject({
+	title: providerText,
+	showPageNo: z.boolean().optional(),
+	entries: z
+		.array(
+			z.strictObject({
+				name: providerText,
+				issueDate: providerText,
+				submitDate: providerText,
+				pageNo: providerText,
+			}),
+		)
+		.optional(),
+});
+
+export const CoverAutofillProviderSchema = z.strictObject({
+	instituteName: providerText,
+	instituteShort: providerText,
+	department: providerText,
+	docType: providerText,
+	submittedBy: z
+		.strictObject({
+			name: providerText,
+			regNo: providerText,
+			roll: providerText,
+			subjectName: providerText,
+			subjectCode: providerText,
+			session: providerText,
+			semester: providerText,
+		})
+		.optional(),
+	submittedTo: z
+		.strictObject({
+			name: providerText,
+			designation: providerText,
+			department: providerText,
+		})
+		.optional(),
+});
+
 export type IndexAutofillPatch = z.infer<typeof IndexAutofillPatchSchema>;
 export type CoverAutofillPatch = z.infer<typeof CoverAutofillPatchSchema>;
 export type AutofillPatch = IndexAutofillPatch | CoverAutofillPatch;
@@ -65,7 +113,9 @@ export interface AutofillResult {
 interface GenerateRequest {
 	type: DocumentType;
 	prompt: string;
-	schema: typeof IndexAutofillPatchSchema | typeof CoverAutofillPatchSchema;
+	schema:
+		| typeof IndexAutofillProviderSchema
+		| typeof CoverAutofillProviderSchema;
 }
 
 export type AutofillGenerator = (request: GenerateRequest) => Promise<unknown>;
@@ -128,18 +178,22 @@ export function createAutofillExtractor(
 	generate: AutofillGenerator = geminiGenerate,
 ) {
 	return async (type: DocumentType, text: string): Promise<AutofillResult> => {
-		const schema =
+		const validationSchema =
 			type === "index_sheet"
 				? IndexAutofillPatchSchema
 				: CoverAutofillPatchSchema;
+		const providerSchema =
+			type === "index_sheet"
+				? IndexAutofillProviderSchema
+				: CoverAutofillProviderSchema;
 		let parsed: AutofillPatch;
 		try {
 			const generated = await generate({
 				type,
 				prompt: buildAutofillPrompt(type, text),
-				schema,
+				schema: providerSchema,
 			});
-			parsed = schema.parse(generated);
+			parsed = validationSchema.parse(generated);
 		} catch {
 			throw new ProviderAutofillError();
 		}

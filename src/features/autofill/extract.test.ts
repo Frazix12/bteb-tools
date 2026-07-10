@@ -1,12 +1,22 @@
 import { describe, expect, test, vi } from "vitest";
+import { z } from "zod";
 
 import {
 	createAutofillExtractor,
+	IndexAutofillProviderSchema,
 	NoMeaningfulAutofillFieldsError,
 	ProviderAutofillError,
 } from "./extract";
 
 describe("autofill extraction", () => {
+	test("uses a Gemini-compatible JSON response schema", () => {
+		const serialized = JSON.stringify(
+			z.toJSONSchema(IndexAutofillProviderSchema),
+		);
+		for (const unsupported of ["const", "maxItems", "maxLength", "format"]) {
+			expect(serialized).not.toContain(`"${unsupported}"`);
+		}
+	});
 	test("returns only validated cover fields and counts nonempty leaves", async () => {
 		const generate = vi.fn().mockResolvedValue({
 			instituteName: "ঢাকা পলিটেকনিক ইনস্টিটিউট",

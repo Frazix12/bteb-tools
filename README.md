@@ -27,7 +27,7 @@ DATABASE_URL=postgresql://...
 BETTER_AUTH_SECRET=at-least-32-characters
 BETTER_AUTH_URL=http://localhost:3000
 GEMINI_API_KEY=optional
-GEMINI_MODEL=gemini-2.5-flash-lite
+GEMINI_MODEL=gemini-3.1-flash-lite
 ```
 
 Apply the committed migrations and start the app:
