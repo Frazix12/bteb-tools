@@ -27,6 +27,7 @@ describe("AutoFitExperimentName", () => {
 		cleanup();
 		vi.restoreAllMocks();
 		vi.unstubAllGlobals();
+		Reflect.deleteProperty(document, "fonts");
 	});
 
 	test("keeps fitting content at 19px", () => {
@@ -83,5 +84,46 @@ describe("AutoFitExperimentName", () => {
 		);
 
 		expect(content.style.fontSize).toBe("19px");
+	});
+
+	test("refits after fonts load and cancels font work on unmount", async () => {
+		const fonts = new EventTarget();
+		let resolveFonts: (value: EventTarget) => void = () => undefined;
+		Object.defineProperty(fonts, "ready", {
+			value: new Promise<EventTarget>((resolve) => {
+				resolveFonts = resolve;
+			}),
+		});
+		const removeEventListener = vi.spyOn(fonts, "removeEventListener");
+		Object.defineProperty(document, "fonts", {
+			configurable: true,
+			value: fonts,
+		});
+		let fittedSize = 15;
+		vi.spyOn(HTMLElement.prototype, "clientHeight", "get").mockReturnValue(40);
+		vi.spyOn(HTMLElement.prototype, "scrollHeight", "get").mockImplementation(
+			function (this: HTMLElement) {
+				return Number.parseInt(this.style.fontSize, 10) > fittedSize ? 60 : 40;
+			},
+		);
+		const { getByTestId, unmount } = render(
+			<AutoFitExperimentName value="Font-sensitive name" />,
+		);
+		const content = getByTestId("auto-fit-experiment-name");
+		expect(content.style.fontSize).toBe("15px");
+
+		fittedSize = 13;
+		act(() => fonts.dispatchEvent(new Event("loadingdone")));
+
+		expect(content.style.fontSize).toBe("13px");
+		unmount();
+		expect(removeEventListener).toHaveBeenCalledWith(
+			"loadingdone",
+			expect.any(Function),
+		);
+		fittedSize = 12;
+		resolveFonts(fonts);
+		await act(async () => Promise.resolve());
+		expect(content.style.fontSize).toBe("13px");
 	});
 });

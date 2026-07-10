@@ -15,6 +15,7 @@ export function AutoFitExperimentName({ value }: { value: string }) {
 		const fitContent = () => {
 			let nextSize = MAX_FONT_SIZE;
 			content.style.fontSize = `${nextSize}px`;
+			if (value.length === 0) return;
 			while (
 				content.scrollHeight > content.clientHeight &&
 				nextSize > MIN_FONT_SIZE
@@ -25,11 +26,26 @@ export function AutoFitExperimentName({ value }: { value: string }) {
 		};
 
 		fitContent();
-		if (typeof ResizeObserver === "undefined") return;
-		const observer = new ResizeObserver(fitContent);
-		observer.observe(content);
-		return () => observer.disconnect();
-	});
+		const observer =
+			typeof ResizeObserver === "undefined"
+				? undefined
+				: new ResizeObserver(fitContent);
+		observer?.observe(content);
+
+		let cancelled = false;
+		const fonts = document.fonts;
+		const refitAfterFontsLoad = () => {
+			if (!cancelled) fitContent();
+		};
+		fonts?.addEventListener("loadingdone", refitAfterFontsLoad);
+		void fonts?.ready.then(refitAfterFontsLoad);
+
+		return () => {
+			cancelled = true;
+			observer?.disconnect();
+			fonts?.removeEventListener("loadingdone", refitAfterFontsLoad);
+		};
+	}, [value]);
 
 	return (
 		<div

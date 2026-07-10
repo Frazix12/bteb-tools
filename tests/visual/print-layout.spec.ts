@@ -20,6 +20,11 @@ for (const viewport of RESPONSIVE_VIEWPORTS) {
 		await page.goto("/visual-fixtures?kind=index&stress=true");
 		await page.evaluate(() => document.fonts.ready);
 		await expect(page.locator(".page-frame")).toHaveCount(2);
+		const pageRows = page.locator(".index-page .idx-body");
+		await expect(pageRows).toHaveCount(2);
+		for (const rows of await pageRows.all()) {
+			await expect(rows.locator(":scope > .idx-row")).toHaveCount(10);
+		}
 
 		await expect
 			.poll(() =>
@@ -77,6 +82,20 @@ for (const viewport of RESPONSIVE_VIEWPORTS) {
 						names.every((name) => name.scrollHeight <= name.clientHeight),
 					),
 				{ timeout: 15_000 },
+			)
+			.toBe(true);
+
+		await page.emulateMedia({ media: "print" });
+		await expect
+			.poll(() =>
+				page.locator(".auto-fit-experiment-name").evaluateAll((names) =>
+					names.every((name) => {
+						const fontSize = Number.parseFloat(getComputedStyle(name).fontSize);
+						return (
+							name.scrollHeight <= name.clientHeight && fontSize >= 11
+						);
+					}),
+				),
 			)
 			.toBe(true);
 	});
