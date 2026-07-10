@@ -1,5 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useState } from "react";
 import { useIndexSheetDocument } from "#/features/editor/use-document-editor";
+import { useUnsavedWarning } from "#/features/editor/use-unsaved-warning";
 import { IndexSheetEditor } from "#/features/index-sheet/index-sheet-editor";
 import type { IndexSheetData } from "#/orpc/schemas/document";
 
@@ -10,6 +12,8 @@ export const Route = createFileRoute("/_auth/index-sheet/$id")({
 function EditIndexSheet() {
 	const { id } = Route.useParams();
 	const editor = useIndexSheetDocument(id);
+	const [isDirty, setIsDirty] = useState(false);
+	useUnsavedWarning(isDirty);
 	if (editor.documentQuery.isLoading)
 		return <output className="block p-8">Loading index sheet…</output>;
 	if (editor.documentQuery.error || !editor.documentQuery.data)
@@ -26,6 +30,7 @@ function EditIndexSheet() {
 			key={id}
 			initialData={editor.documentQuery.data.data as IndexSheetData}
 			isSaving={editor.isSaving}
+			onDirtyChange={setIsDirty}
 			onSave={editor.save}
 		/>
 	);

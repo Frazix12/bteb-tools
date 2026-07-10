@@ -103,14 +103,19 @@ export function IndexSheetEditor({
 	};
 	const importFile = async (file?: File) => {
 		if (!file) return;
-		const parsed = parseLegacyDocument(await file.text(), "index_sheet");
-		if (!parsed.ok) setMessage(parsed.message);
-		else {
-			changeData(parsed.data);
-			cancelEdit();
-			setMessage("Index sheet imported.");
+		try {
+			const parsed = parseLegacyDocument(await file.text(), "index_sheet");
+			if (!parsed.ok) setMessage(parsed.message);
+			else {
+				changeData(parsed.data);
+				cancelEdit();
+				setMessage("Index sheet imported.");
+			}
+		} catch {
+			setMessage("Could not read that file as JSON.");
+		} finally {
+			if (fileRef.current) fileRef.current.value = "";
 		}
-		if (fileRef.current) fileRef.current.value = "";
 	};
 	const save = async () => {
 		setMessage(null);
@@ -150,6 +155,9 @@ export function IndexSheetEditor({
 								const entries = data.entries.filter((_, i) => i !== index);
 								changeData({ ...data, entries });
 								if (editingIndex === index) cancelEdit();
+								else if (editingIndex !== null && index < editingIndex) {
+									setEditingIndex(editingIndex - 1);
+								}
 							}}
 							onEdit={(index) => {
 								setEditingIndex(index);
@@ -176,8 +184,9 @@ export function IndexSheetEditor({
 							<Button
 								variant="outline"
 								onClick={() => {
-									if (onExport) onExport(data);
-									else downloadJson(data);
+									const exportData = { ...data, title: data.title || "INDEX" };
+									if (onExport) onExport(exportData);
+									else downloadJson(exportData);
 								}}
 							>
 								<Download />

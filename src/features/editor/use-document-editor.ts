@@ -22,10 +22,11 @@ export function useIndexSheetDocument(id?: string) {
 	const create = useMutation(createDocumentMutationOptions(queryClient));
 	const update = useMutation(updateDocumentMutationOptions(queryClient));
 	const save = async (data: IndexSheetData) => {
+		const normalizedData = { ...data, title: data.title.trim() || "INDEX" };
 		const input = {
 			type: "index_sheet" as const,
-			title: data.title.trim() || "INDEX",
-			data,
+			title: normalizedData.title,
+			data: normalizedData,
 			logoDataUrl: null,
 		};
 		if (id) return update.mutateAsync({ ...input, id });
