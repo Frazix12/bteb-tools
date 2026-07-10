@@ -90,6 +90,29 @@ describe("index sheet editor", () => {
 		expect(screen.getByText(/No rows yet/)).toBeTruthy();
 	});
 
+	test("keeps the edited row selected when an earlier row is deleted", () => {
+		renderEditor({
+			initialData: {
+				...createBlankIndexSheet(),
+				entries: ["First", "Second", "Third"].map((name) => ({
+					name,
+					pageNo: "",
+					issueDate: "",
+					submitDate: "",
+				})),
+			},
+		});
+		fireEvent.click(screen.getByRole("button", { name: "Edit Third" }));
+		fireEvent.click(screen.getByRole("button", { name: "Delete First" }));
+		fireEvent.change(screen.getByLabelText("Experiment name"), {
+			target: { value: "Updated Third" },
+		});
+		fireEvent.click(screen.getByRole("button", { name: "Update row" }));
+
+		expect(screen.getAllByText("Updated Third").length).toBeGreaterThan(1);
+		expect(screen.getAllByText("Second").length).toBeGreaterThan(1);
+	});
+
 	test("imports valid legacy JSON, rejects invalid JSON, and exports the exact draft", async () => {
 		const onExport = vi.fn();
 		renderEditor({ onExport });
@@ -148,5 +171,17 @@ describe("index sheet editor", () => {
 			screen.getByRole("button", { name: "Print or save as PDF" }),
 		);
 		expect(print).toHaveBeenCalledOnce();
+	});
+
+	test("exports a blank title with the legacy INDEX fallback", () => {
+		const onExport = vi.fn();
+		renderEditor({ onExport });
+		fireEvent.change(screen.getByLabelText("Sheet title"), {
+			target: { value: "" },
+		});
+		fireEvent.click(screen.getByRole("button", { name: "Export JSON" }));
+		expect(onExport).toHaveBeenCalledWith(
+			expect.objectContaining({ title: "INDEX" }),
+		);
 	});
 });
