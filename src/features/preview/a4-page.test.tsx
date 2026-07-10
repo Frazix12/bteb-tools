@@ -30,6 +30,11 @@ describe("A4 preview scaling", () => {
 		expect(calculatePageScale(A4_WIDTH_PX + 200)).toBe(1);
 	});
 
+	test("never returns a negative scale for a sub-gutter container", () => {
+		expect(calculatePageScale(1)).toBe(0);
+		expect(calculatePageScale(3)).toBe(0);
+	});
+
 	test("uses fixed CSS A4 dimensions", () => {
 		expect(A4_WIDTH_PX).toBeCloseTo(210 * (96 / 25.4));
 		expect(A4_HEIGHT_PX).toBeCloseTo(297 * (96 / 25.4));

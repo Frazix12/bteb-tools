@@ -32,6 +32,8 @@ import { Route as DemoFormSimpleRouteImport } from './routes/demo/form.simple'
 import { Route as DemoFormAddressRouteImport } from './routes/demo/form.address'
 import { Route as ApiRpcSplatRouteImport } from './routes/api.rpc.$'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
+import { Route as AuthIndexSheetNewRouteImport } from './routes/_auth/index-sheet/new'
+import { Route as AuthIndexSheetIdRouteImport } from './routes/_auth/index-sheet/$id'
 import { Route as DemoApiAiTtsRouteImport } from './routes/demo/api.ai.tts'
 import { Route as DemoApiAiTranscriptionRouteImport } from './routes/demo/api.ai.transcription'
 import { Route as DemoApiAiStructuredRouteImport } from './routes/demo/api.ai.structured'
@@ -152,6 +154,16 @@ const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   path: '/api/auth/$',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthIndexSheetNewRoute = AuthIndexSheetNewRouteImport.update({
+  id: '/index-sheet/new',
+  path: '/index-sheet/new',
+  getParentRoute: () => AuthRoute,
+} as any)
+const AuthIndexSheetIdRoute = AuthIndexSheetIdRouteImport.update({
+  id: '/index-sheet/$id',
+  path: '/index-sheet/$id',
+  getParentRoute: () => AuthRoute,
+} as any)
 const DemoApiAiTtsRoute = DemoApiAiTtsRouteImport.update({
   id: '/demo/api/ai/tts',
   path: '/demo/api/ai/tts',
@@ -195,6 +207,8 @@ export interface FileRoutesByFullPath {
   '/demo/orpc-todo': typeof DemoOrpcTodoRoute
   '/demo/store': typeof DemoStoreRoute
   '/demo/tanstack-query': typeof DemoTanstackQueryRoute
+  '/index-sheet/$id': typeof AuthIndexSheetIdRoute
+  '/index-sheet/new': typeof AuthIndexSheetNewRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/rpc/$': typeof ApiRpcSplatRoute
   '/demo/form/address': typeof DemoFormAddressRoute
@@ -224,6 +238,8 @@ export interface FileRoutesByTo {
   '/demo/orpc-todo': typeof DemoOrpcTodoRoute
   '/demo/store': typeof DemoStoreRoute
   '/demo/tanstack-query': typeof DemoTanstackQueryRoute
+  '/index-sheet/$id': typeof AuthIndexSheetIdRoute
+  '/index-sheet/new': typeof AuthIndexSheetNewRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/rpc/$': typeof ApiRpcSplatRoute
   '/demo/form/address': typeof DemoFormAddressRoute
@@ -255,6 +271,8 @@ export interface FileRoutesById {
   '/demo/orpc-todo': typeof DemoOrpcTodoRoute
   '/demo/store': typeof DemoStoreRoute
   '/demo/tanstack-query': typeof DemoTanstackQueryRoute
+  '/_auth/index-sheet/$id': typeof AuthIndexSheetIdRoute
+  '/_auth/index-sheet/new': typeof AuthIndexSheetNewRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/rpc/$': typeof ApiRpcSplatRoute
   '/demo/form/address': typeof DemoFormAddressRoute
@@ -286,6 +304,8 @@ export interface FileRouteTypes {
     | '/demo/orpc-todo'
     | '/demo/store'
     | '/demo/tanstack-query'
+    | '/index-sheet/$id'
+    | '/index-sheet/new'
     | '/api/auth/$'
     | '/api/rpc/$'
     | '/demo/form/address'
@@ -315,6 +335,8 @@ export interface FileRouteTypes {
     | '/demo/orpc-todo'
     | '/demo/store'
     | '/demo/tanstack-query'
+    | '/index-sheet/$id'
+    | '/index-sheet/new'
     | '/api/auth/$'
     | '/api/rpc/$'
     | '/demo/form/address'
@@ -345,6 +367,8 @@ export interface FileRouteTypes {
     | '/demo/orpc-todo'
     | '/demo/store'
     | '/demo/tanstack-query'
+    | '/_auth/index-sheet/$id'
+    | '/_auth/index-sheet/new'
     | '/api/auth/$'
     | '/api/rpc/$'
     | '/demo/form/address'
@@ -551,6 +575,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAuthSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_auth/index-sheet/new': {
+      id: '/_auth/index-sheet/new'
+      path: '/index-sheet/new'
+      fullPath: '/index-sheet/new'
+      preLoaderRoute: typeof AuthIndexSheetNewRouteImport
+      parentRoute: typeof AuthRoute
+    }
+    '/_auth/index-sheet/$id': {
+      id: '/_auth/index-sheet/$id'
+      path: '/index-sheet/$id'
+      fullPath: '/index-sheet/$id'
+      preLoaderRoute: typeof AuthIndexSheetIdRouteImport
+      parentRoute: typeof AuthRoute
+    }
     '/demo/api/ai/tts': {
       id: '/demo/api/ai/tts'
       path: '/demo/api/ai/tts'
@@ -591,10 +629,14 @@ declare module '@tanstack/react-router' {
 
 interface AuthRouteChildren {
   AuthDashboardRoute: typeof AuthDashboardRoute
+  AuthIndexSheetIdRoute: typeof AuthIndexSheetIdRoute
+  AuthIndexSheetNewRoute: typeof AuthIndexSheetNewRoute
 }
 
 const AuthRouteChildren: AuthRouteChildren = {
   AuthDashboardRoute: AuthDashboardRoute,
+  AuthIndexSheetIdRoute: AuthIndexSheetIdRoute,
+  AuthIndexSheetNewRoute: AuthIndexSheetNewRoute,
 }
 
 const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)

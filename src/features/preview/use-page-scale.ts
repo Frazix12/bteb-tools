@@ -8,9 +8,9 @@ const PREVIEW_GUTTER_PX = 4;
 
 export function calculatePageScale(containerWidth: number) {
 	if (containerWidth <= 0) return 1;
-	const availableWidth = Math.min(
-		containerWidth,
-		containerWidth - PREVIEW_GUTTER_PX,
+	const availableWidth = Math.max(
+		0,
+		Math.min(containerWidth, containerWidth - PREVIEW_GUTTER_PX),
 	);
 	return Math.min(1, availableWidth / A4_WIDTH_PX);
 }
