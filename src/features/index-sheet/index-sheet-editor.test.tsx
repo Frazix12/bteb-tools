@@ -1,6 +1,15 @@
 // @vitest-environment jsdom
+
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, test, vi } from "vitest";
+
+const { extractMutation } = vi.hoisted(() => ({ extractMutation: vi.fn() }));
+vi.mock("#/features/autofill/queries", () => ({
+	autofillExtractMutationOptions: () => ({
+		mutationFn: extractMutation,
+	}),
+}));
 
 import { createBlankIndexSheet } from "./defaults";
 import { IndexSheetEditor } from "./index-sheet-editor";
@@ -13,10 +22,50 @@ const renderEditor = (overrides = {}) => {
 		onSave: vi.fn().mockResolvedValue(undefined),
 		...overrides,
 	};
-	return { ...render(<IndexSheetEditor {...props} />), props };
+	const client = new QueryClient({
+		defaultOptions: { mutations: { retry: false } },
+	});
+	return {
+		...render(
+			<QueryClientProvider client={client}>
+				<IndexSheetEditor {...props} />
+			</QueryClientProvider>,
+		),
+		props,
+	};
 };
 
 describe("index sheet editor", () => {
+	test("applies reviewed autofill to the dirty draft without saving", async () => {
+		extractMutation.mockResolvedValueOnce({
+			type: "index_sheet",
+			patch: {
+				entries: [
+					{
+						name: "AI experiment",
+						pageNo: "",
+						issueDate: "",
+						submitDate: "",
+					},
+				],
+			},
+			extractedFieldCount: 1,
+			warnings: [],
+		});
+		const onDirtyChange = vi.fn();
+		const { props } = renderEditor({ onDirtyChange });
+		fireEvent.click(screen.getByRole("button", { name: "AI autofill" }));
+		fireEvent.change(screen.getByLabelText("Source text"), {
+			target: { value: "A detailed experiment list for extraction" },
+		});
+		fireEvent.click(screen.getByRole("button", { name: "Extract details" }));
+		fireEvent.click(
+			await screen.findByRole("button", { name: "Apply selected" }),
+		);
+		expect(screen.getAllByText("AI experiment").length).toBeGreaterThan(1);
+		expect(onDirtyChange).toHaveBeenLastCalledWith(true);
+		expect(props.onSave).not.toHaveBeenCalled();
+	});
 	test("adds validated rows and keeps the ten-row preview live", () => {
 		renderEditor();
 		fireEvent.click(screen.getByRole("button", { name: "Add row" }));

@@ -1,6 +1,16 @@
 // @vitest-environment jsdom
+
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, test, vi } from "vitest";
+
+const { extractMutation } = vi.hoisted(() => ({ extractMutation: vi.fn() }));
+vi.mock("#/features/autofill/queries", () => ({
+	autofillExtractMutationOptions: () => ({
+		mutationFn: extractMutation,
+	}),
+}));
+
 import { CoverPageEditor } from "./cover-page-editor";
 import { createBlankCoverPage } from "./defaults";
 
@@ -12,10 +22,41 @@ const renderEditor = (overrides = {}) => {
 		onSave: vi.fn().mockResolvedValue(undefined),
 		...overrides,
 	};
-	return { ...render(<CoverPageEditor {...props} />), props };
+	const client = new QueryClient({
+		defaultOptions: { mutations: { retry: false } },
+	});
+	return {
+		...render(
+			<QueryClientProvider client={client}>
+				<CoverPageEditor {...props} />
+			</QueryClientProvider>,
+		),
+		props,
+	};
 };
 
 describe("cover page editor", () => {
+	test("applies reviewed autofill to the dirty draft without saving", async () => {
+		extractMutation.mockResolvedValueOnce({
+			type: "cover_page",
+			patch: { instituteName: "AI Institute", department: "Computer" },
+			extractedFieldCount: 2,
+			warnings: [],
+		});
+		const onDirtyChange = vi.fn();
+		const { props } = renderEditor({ onDirtyChange });
+		fireEvent.click(screen.getByRole("button", { name: "AI autofill" }));
+		fireEvent.change(screen.getByLabelText("Source text"), {
+			target: { value: "Detailed cover page information for extraction" },
+		});
+		fireEvent.click(screen.getByRole("button", { name: "Extract details" }));
+		fireEvent.click(
+			await screen.findByRole("button", { name: "Apply selected" }),
+		);
+		expect(screen.getByDisplayValue("AI Institute")).toBeTruthy();
+		expect(onDirtyChange).toHaveBeenLastCalledWith(true);
+		expect(props.onSave).not.toHaveBeenCalled();
+	});
 	test("edits every legacy field and renders the derived heading live", () => {
 		renderEditor();
 		const values = {

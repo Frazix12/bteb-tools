@@ -1,4 +1,5 @@
 import { useForm } from "@tanstack/react-form";
+import { useMutation } from "@tanstack/react-query";
 import { useStore } from "@tanstack/react-store";
 import { Download, Printer, Save, Upload } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
@@ -11,6 +12,8 @@ import {
 	CardHeader,
 	CardTitle,
 } from "#/components/ui/card";
+import { AutofillDialog } from "#/features/autofill/autofill-dialog";
+import { autofillExtractMutationOptions } from "#/features/autofill/queries";
 import {
 	parseLegacyDocument,
 	serializeLegacyDocument,
@@ -62,6 +65,7 @@ export function IndexSheetEditor({
 	onSave,
 }: Props) {
 	const form = useForm({ defaultValues: initialData });
+	const autofill = useMutation(autofillExtractMutationOptions());
 	const data = useStore(form.store, (state) => state.values);
 	const [rowDraft, setRowDraft] = useState(blankRow);
 	const [editingIndex, setEditingIndex] = useState<number | null>(null);
@@ -173,6 +177,14 @@ export function IndexSheetEditor({
 							</p>
 						)}
 						<div className="grid grid-cols-2 gap-2">
+							<AutofillDialog
+								type="index_sheet"
+								current={data}
+								onExtract={(text) =>
+									autofill.mutateAsync({ type: "index_sheet", text })
+								}
+								onApply={changeData}
+							/>
 							<Button disabled={isSaving} onClick={() => void save()}>
 								<Save />
 								{isSaving ? "Saving…" : "Save sheet"}
