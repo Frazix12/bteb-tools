@@ -10,6 +10,7 @@ class ResizeObserverStub {
 
 	disconnect = vi.fn();
 	observe = vi.fn();
+	unobserve = vi.fn();
 
 	constructor(readonly callback: ResizeObserverCallback) {
 		ResizeObserverStub.instances.push(this);

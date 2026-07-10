@@ -35,6 +35,7 @@
 }
 
 .preview-host {
+	min-width: 0;
 	overflow: auto;
 	padding: 16px 10px 60px;
 }
@@ -51,6 +52,8 @@
 
 .index-preview-wrap {
 	display: flex;
+	width: 100%;
+	min-width: 0;
 	flex-direction: column;
 	align-items: center;
 	gap: 28px;

@@ -5,6 +5,52 @@ import { PNG } from "pngjs";
 const A4_WIDTH = 210 * (96 / 25.4);
 const A4_HEIGHT = 297 * (96 / 25.4);
 
+const RESPONSIVE_VIEWPORTS = [
+	{ height: 844, width: 390 },
+	{ height: 390, width: 844 },
+	{ height: 768, width: 1024 },
+	{ height: 900, width: 1440 },
+] as const;
+
+for (const viewport of RESPONSIVE_VIEWPORTS) {
+	test(`index preview fits ${viewport.width}x${viewport.height} without overflowing`, async ({
+		page,
+	}) => {
+		await page.setViewportSize(viewport);
+		await page.goto("/visual-fixtures?kind=index&stress=true");
+		await page.evaluate(() => document.fonts.ready);
+		await expect(page.locator(".page-frame")).toHaveCount(2);
+
+		await expect
+			.poll(() =>
+				page.evaluate(() => {
+					const host = document.querySelector<HTMLElement>("[data-preview-host]");
+					if (!host) return false;
+					const hostBox = host.getBoundingClientRect();
+					const availableHeight = window.innerHeight - hostBox.top;
+					return Array.from(
+						document.querySelectorAll<HTMLElement>(".page-frame"),
+					).every((frame) => {
+						const box = frame.getBoundingClientRect();
+						return (
+							box.left >= hostBox.left &&
+							box.right <= hostBox.right &&
+							box.height <= availableHeight
+						);
+					});
+				}),
+			{ timeout: 15_000 },
+		)
+			.toBe(true);
+
+		await expect(page.locator("sup").first()).toContainText("2");
+		const namesFit = await page.locator(".idx-cell.name").evaluateAll((cells) =>
+			cells.every((cell) => cell.scrollHeight <= cell.clientHeight),
+		);
+		expect(namesFit).toBe(true);
+	});
+}
+
 for (const kind of ["index", "cover"] as const) {
 	test(`${kind} preview prints at the A4 origin`, async ({ page }) => {
 		await page.goto(`/visual-fixtures?kind=${kind}`);

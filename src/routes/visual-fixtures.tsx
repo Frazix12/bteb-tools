@@ -9,6 +9,7 @@ export const Route = createFileRoute("/visual-fixtures")({
 	},
 	validateSearch: (search: Record<string, unknown>) => ({
 		kind: search.kind === "cover" ? ("cover" as const) : ("index" as const),
+		stress: search.stress === true || search.stress === "true",
 	}),
 	component: VisualFixtures,
 });
@@ -24,7 +25,17 @@ const entries = Array.from({ length: 11 }, (_, index) => ({
 }));
 
 function VisualFixtures() {
-	const { kind } = Route.useSearch();
+	const { kind, stress } = Route.useSearch();
+	const fixtureEntries = stress
+		? entries.map((entry, index) =>
+				index === 0
+					? {
+							...entry,
+							name: "ডিজিটাল ইলেকট্রনিক্স পরীক্ষণ ও mixed-script measurement of voltage^2 current^2 resistance^2 capacitance^2 inductance^2 across a complete series-parallel laboratory circuit",
+						}
+					: entry,
+			)
+		: entries;
 	return (
 		<main className="editor-layout" data-editor-main>
 			<section className="preview-host" data-preview-host>
@@ -63,7 +74,7 @@ function VisualFixtures() {
 							title: "INDEX",
 							rowsPerPage: 10,
 							showPageNo: true,
-							entries,
+							entries: fixtureEntries,
 						}}
 					/>
 				)}
