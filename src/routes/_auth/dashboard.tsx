@@ -20,19 +20,8 @@ function Dashboard() {
 	const queryClient = useQueryClient();
 	const documentsQuery = useQuery(documentListOptions());
 	const duplicate = useMutation(duplicateDocumentMutationOptions(queryClient));
-	const removeIndexSheet = useMutation(
-		removeDocumentMutationOptions(queryClient, "index_sheet"),
-	);
-	const removeCoverPage = useMutation(
-		removeDocumentMutationOptions(queryClient, "cover_page"),
-	);
-	const pendingDelete = removeIndexSheet.isPending
-		? removeIndexSheet
-		: removeCoverPage.isPending
-			? removeCoverPage
-			: null;
-	const actionError =
-		duplicate.error ?? removeIndexSheet.error ?? removeCoverPage.error;
+	const remove = useMutation(removeDocumentMutationOptions(queryClient));
+	const actionError = duplicate.error ?? remove.error;
 
 	return (
 		<DashboardView
@@ -49,15 +38,11 @@ function Dashboard() {
 			}
 			isLoading={documentsQuery.isLoading}
 			onDelete={(id) => {
-				const document = documentsQuery.data?.find((item) => item.id === id);
-				(document?.type === "cover_page"
-					? removeCoverPage
-					: removeIndexSheet
-				).mutate({ id });
+				remove.mutate({ id });
 			}}
 			onDuplicate={(id) => duplicate.mutate({ id })}
 			onRetry={() => void documentsQuery.refetch()}
-			pendingDeleteId={pendingDelete?.variables?.id ?? null}
+			pendingDeleteId={remove.isPending ? (remove.variables?.id ?? null) : null}
 			pendingDuplicateId={
 				duplicate.isPending ? (duplicate.variables?.id ?? null) : null
 			}
