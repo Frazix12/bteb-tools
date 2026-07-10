@@ -122,7 +122,7 @@ export const documents = pgTable(
 export const autofillRateLimits = pgTable(
 	"autofill_rate_limit",
 	{
-		id: bigserial("id", { mode: "number" }).primaryKey(),
+		id: bigserial("id", { mode: "bigint" }).primaryKey(),
 		ownerId: text("owner_id")
 			.notNull()
 			.references(() => user.id, { onDelete: "cascade" }),
