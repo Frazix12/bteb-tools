@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "exportedAt": "2026-07-10T08:00:00.000Z",
+  "type": "cover-page",
+  "instituteName": "Example Polytechnic Institute",
+  "instituteShort": "(EPI)",
+  "department": "Computer Science and Technology",
+  "docType": "Assignment",
+  "logoDataUrl": "data:image/png;base64,aGVsbG8=",
+  "submittedBy": {
+    "name": "Student Name",
+    "regNo": "1502413305",
+    "roll": "237119",
+    "subjectName": "Mathematics-3",
+    "subjectCode": "25931",
+    "session": "2024-2025",
+    "semester": "3rd"
+  },
+  "submittedTo": {
+    "name": "Teacher Name",
+    "designation": "Lecturer",
+    "department": "Mathematics"
+  }
+}
