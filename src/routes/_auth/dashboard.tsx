@@ -1,39 +1,66 @@
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 
-import { Button } from "#/components/ui/button";
+import { DashboardView } from "#/features/dashboard/dashboard-view";
 import {
-	Card,
-	CardContent,
-	CardDescription,
-	CardHeader,
-	CardTitle,
-} from "#/components/ui/card";
+	documentListOptions,
+	duplicateDocumentMutationOptions,
+	removeDocumentMutationOptions,
+} from "#/features/documents/queries";
 
 export const Route = createFileRoute("/_auth/dashboard")({
-	component: DashboardPlaceholder,
+	component: Dashboard,
 });
 
-function DashboardPlaceholder() {
-	const { user } = Route.useRouteContext();
+function errorMessage(error: unknown, fallback: string) {
+	return error instanceof Error && error.message ? error.message : fallback;
+}
+
+function Dashboard() {
+	const queryClient = useQueryClient();
+	const documentsQuery = useQuery(documentListOptions());
+	const duplicate = useMutation(duplicateDocumentMutationOptions(queryClient));
+	const removeIndexSheet = useMutation(
+		removeDocumentMutationOptions(queryClient, "index_sheet"),
+	);
+	const removeCoverPage = useMutation(
+		removeDocumentMutationOptions(queryClient, "cover_page"),
+	);
+	const pendingDelete = removeIndexSheet.isPending
+		? removeIndexSheet
+		: removeCoverPage.isPending
+			? removeCoverPage
+			: null;
+	const actionError =
+		duplicate.error ?? removeIndexSheet.error ?? removeCoverPage.error;
+
 	return (
-		<main className="page-wrap py-10">
-			<Card className="border-[var(--line)] bg-[var(--surface-strong)]">
-				<CardHeader>
-					<CardTitle>Welcome, {user.name}</CardTitle>
-					<CardDescription>
-						Create your first document. Saved-document management arrives in the
-						dashboard milestone.
-					</CardDescription>
-				</CardHeader>
-				<CardContent className="flex flex-wrap gap-3">
-					<Button asChild>
-						<a href="/index-sheet/new">New Index Sheet</a>
-					</Button>
-					<Button asChild variant="outline">
-						<a href="/cover-page/new">New Cover Page</a>
-					</Button>
-				</CardContent>
-			</Card>
-		</main>
+		<DashboardView
+			actionError={
+				actionError
+					? errorMessage(actionError, "The document action failed.")
+					: null
+			}
+			documents={documentsQuery.data ?? []}
+			error={
+				documentsQuery.error
+					? errorMessage(documentsQuery.error, "Documents could not be loaded.")
+					: null
+			}
+			isLoading={documentsQuery.isLoading}
+			onDelete={(id) => {
+				const document = documentsQuery.data?.find((item) => item.id === id);
+				(document?.type === "cover_page"
+					? removeCoverPage
+					: removeIndexSheet
+				).mutate({ id });
+			}}
+			onDuplicate={(id) => duplicate.mutate({ id })}
+			onRetry={() => void documentsQuery.refetch()}
+			pendingDeleteId={pendingDelete?.variables?.id ?? null}
+			pendingDuplicateId={
+				duplicate.isPending ? (duplicate.variables?.id ?? null) : null
+			}
+		/>
 	);
 }
