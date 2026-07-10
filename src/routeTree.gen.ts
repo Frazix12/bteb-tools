@@ -34,6 +34,8 @@ import { Route as ApiRpcSplatRouteImport } from './routes/api.rpc.$'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as AuthIndexSheetNewRouteImport } from './routes/_auth/index-sheet/new'
 import { Route as AuthIndexSheetIdRouteImport } from './routes/_auth/index-sheet/$id'
+import { Route as AuthCoverPageNewRouteImport } from './routes/_auth/cover-page/new'
+import { Route as AuthCoverPageIdRouteImport } from './routes/_auth/cover-page/$id'
 import { Route as DemoApiAiTtsRouteImport } from './routes/demo/api.ai.tts'
 import { Route as DemoApiAiTranscriptionRouteImport } from './routes/demo/api.ai.transcription'
 import { Route as DemoApiAiStructuredRouteImport } from './routes/demo/api.ai.structured'
@@ -164,6 +166,16 @@ const AuthIndexSheetIdRoute = AuthIndexSheetIdRouteImport.update({
   path: '/index-sheet/$id',
   getParentRoute: () => AuthRoute,
 } as any)
+const AuthCoverPageNewRoute = AuthCoverPageNewRouteImport.update({
+  id: '/cover-page/new',
+  path: '/cover-page/new',
+  getParentRoute: () => AuthRoute,
+} as any)
+const AuthCoverPageIdRoute = AuthCoverPageIdRouteImport.update({
+  id: '/cover-page/$id',
+  path: '/cover-page/$id',
+  getParentRoute: () => AuthRoute,
+} as any)
 const DemoApiAiTtsRoute = DemoApiAiTtsRouteImport.update({
   id: '/demo/api/ai/tts',
   path: '/demo/api/ai/tts',
@@ -207,6 +219,8 @@ export interface FileRoutesByFullPath {
   '/demo/orpc-todo': typeof DemoOrpcTodoRoute
   '/demo/store': typeof DemoStoreRoute
   '/demo/tanstack-query': typeof DemoTanstackQueryRoute
+  '/cover-page/$id': typeof AuthCoverPageIdRoute
+  '/cover-page/new': typeof AuthCoverPageNewRoute
   '/index-sheet/$id': typeof AuthIndexSheetIdRoute
   '/index-sheet/new': typeof AuthIndexSheetNewRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
@@ -238,6 +252,8 @@ export interface FileRoutesByTo {
   '/demo/orpc-todo': typeof DemoOrpcTodoRoute
   '/demo/store': typeof DemoStoreRoute
   '/demo/tanstack-query': typeof DemoTanstackQueryRoute
+  '/cover-page/$id': typeof AuthCoverPageIdRoute
+  '/cover-page/new': typeof AuthCoverPageNewRoute
   '/index-sheet/$id': typeof AuthIndexSheetIdRoute
   '/index-sheet/new': typeof AuthIndexSheetNewRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
@@ -271,6 +287,8 @@ export interface FileRoutesById {
   '/demo/orpc-todo': typeof DemoOrpcTodoRoute
   '/demo/store': typeof DemoStoreRoute
   '/demo/tanstack-query': typeof DemoTanstackQueryRoute
+  '/_auth/cover-page/$id': typeof AuthCoverPageIdRoute
+  '/_auth/cover-page/new': typeof AuthCoverPageNewRoute
   '/_auth/index-sheet/$id': typeof AuthIndexSheetIdRoute
   '/_auth/index-sheet/new': typeof AuthIndexSheetNewRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
@@ -304,6 +322,8 @@ export interface FileRouteTypes {
     | '/demo/orpc-todo'
     | '/demo/store'
     | '/demo/tanstack-query'
+    | '/cover-page/$id'
+    | '/cover-page/new'
     | '/index-sheet/$id'
     | '/index-sheet/new'
     | '/api/auth/$'
@@ -335,6 +355,8 @@ export interface FileRouteTypes {
     | '/demo/orpc-todo'
     | '/demo/store'
     | '/demo/tanstack-query'
+    | '/cover-page/$id'
+    | '/cover-page/new'
     | '/index-sheet/$id'
     | '/index-sheet/new'
     | '/api/auth/$'
@@ -367,6 +389,8 @@ export interface FileRouteTypes {
     | '/demo/orpc-todo'
     | '/demo/store'
     | '/demo/tanstack-query'
+    | '/_auth/cover-page/$id'
+    | '/_auth/cover-page/new'
     | '/_auth/index-sheet/$id'
     | '/_auth/index-sheet/new'
     | '/api/auth/$'
@@ -589,6 +613,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthIndexSheetIdRouteImport
       parentRoute: typeof AuthRoute
     }
+    '/_auth/cover-page/new': {
+      id: '/_auth/cover-page/new'
+      path: '/cover-page/new'
+      fullPath: '/cover-page/new'
+      preLoaderRoute: typeof AuthCoverPageNewRouteImport
+      parentRoute: typeof AuthRoute
+    }
+    '/_auth/cover-page/$id': {
+      id: '/_auth/cover-page/$id'
+      path: '/cover-page/$id'
+      fullPath: '/cover-page/$id'
+      preLoaderRoute: typeof AuthCoverPageIdRouteImport
+      parentRoute: typeof AuthRoute
+    }
     '/demo/api/ai/tts': {
       id: '/demo/api/ai/tts'
       path: '/demo/api/ai/tts'
@@ -629,12 +667,16 @@ declare module '@tanstack/react-router' {
 
 interface AuthRouteChildren {
   AuthDashboardRoute: typeof AuthDashboardRoute
+  AuthCoverPageIdRoute: typeof AuthCoverPageIdRoute
+  AuthCoverPageNewRoute: typeof AuthCoverPageNewRoute
   AuthIndexSheetIdRoute: typeof AuthIndexSheetIdRoute
   AuthIndexSheetNewRoute: typeof AuthIndexSheetNewRoute
 }
 
 const AuthRouteChildren: AuthRouteChildren = {
   AuthDashboardRoute: AuthDashboardRoute,
+  AuthCoverPageIdRoute: AuthCoverPageIdRoute,
+  AuthCoverPageNewRoute: AuthCoverPageNewRoute,
   AuthIndexSheetIdRoute: AuthIndexSheetIdRoute,
   AuthIndexSheetNewRoute: AuthIndexSheetNewRoute,
 }

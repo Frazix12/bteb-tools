@@ -1,0 +1,135 @@
+// @vitest-environment jsdom
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { afterEach, describe, expect, test, vi } from "vitest";
+import { CoverPageEditor } from "./cover-page-editor";
+import { createBlankCoverPage } from "./defaults";
+
+afterEach(cleanup);
+
+const renderEditor = (overrides = {}) => {
+	const props = {
+		initialData: createBlankCoverPage(),
+		onSave: vi.fn().mockResolvedValue(undefined),
+		...overrides,
+	};
+	return { ...render(<CoverPageEditor {...props} />), props };
+};
+
+describe("cover page editor", () => {
+	test("edits every legacy field and renders the derived heading live", () => {
+		renderEditor();
+		const values = {
+			"Institution name": "Example Polytechnic",
+			"Institution short form (optional)": "(EP)",
+			Department: "Computer Science",
+			"Document type": "Assignment",
+			"Submitted by name": "Student",
+			"Registration no.": "1001",
+			"Roll no.": "2002",
+			"Subject name": "mathematics-3",
+			"Subject code": "25931",
+			Session: "2024-2025",
+			Semester: "3rd",
+			"Submitted to name": "Teacher",
+			Designation: "Lecturer",
+			"Submitted to department": "Mathematics",
+		};
+		for (const [label, value] of Object.entries(values)) {
+			fireEvent.change(screen.getByLabelText(label), { target: { value } });
+		}
+
+		expect(screen.getByTestId("cover-preview").textContent).toContain(
+			"Mathematics Assignment",
+		);
+		for (const value of Object.values(values)) {
+			expect(screen.getByTestId("cover-preview").textContent).toContain(value);
+		}
+	});
+
+	test("uploads and removes a validated logo", async () => {
+		renderEditor();
+		const dataUrl = "data:image/png;base64,YQ==";
+		const file = new File(["a"], "logo.png", { type: "image/png" });
+		Object.defineProperty(FileReader.prototype, "readAsDataURL", {
+			configurable: true,
+			value() {
+				Object.defineProperty(this, "result", { value: dataUrl });
+				this.onload?.(new ProgressEvent("load"));
+			},
+		});
+		fireEvent.change(screen.getByLabelText("Logo image"), {
+			target: { files: [file] },
+		});
+		expect(
+			(await screen.findByAltText("Institution logo")).getAttribute("src"),
+		).toBe(dataUrl);
+		fireEvent.click(screen.getByRole("button", { name: "Remove logo" }));
+		expect(screen.queryByAltText("Institution logo")).toBeNull();
+		expect(screen.getByText("Logo")).toBeTruthy();
+	});
+
+	test("imports legacy JSON and exports the exact current draft", async () => {
+		const onExport = vi.fn();
+		renderEditor({ onExport });
+		const imported = {
+			...createBlankCoverPage(),
+			exportedAt: "2026-07-10T00:00:00.000Z",
+			instituteName: "Imported Institute",
+			logoDataUrl: "data:image/png;base64,YQ==",
+			submittedBy: {
+				...createBlankCoverPage().submittedBy,
+				name: "Imported Student",
+			},
+		};
+		fireEvent.change(screen.getByLabelText("Import JSON file"), {
+			target: {
+				files: [
+					new File([JSON.stringify(imported)], "cover.json", {
+						type: "application/json",
+					}),
+				],
+			},
+		});
+		expect(await screen.findByDisplayValue("Imported Institute")).toBeTruthy();
+		expect(screen.getByAltText("Institution logo")).toBeTruthy();
+		fireEvent.click(screen.getByRole("button", { name: "Export JSON" }));
+		expect(onExport).toHaveBeenCalledWith(imported);
+
+		fireEvent.change(screen.getByLabelText("Import JSON file"), {
+			target: {
+				files: [new File(["bad"], "bad.json", { type: "application/json" })],
+			},
+		});
+		expect((await screen.findByRole("alert")).textContent).toContain(
+			"Could not read",
+		);
+	});
+
+	test("saves logo in the draft, reports errors, prints, and tracks dirty state", async () => {
+		const onSave = vi.fn().mockRejectedValue(new Error("Save unavailable"));
+		const onDirtyChange = vi.fn();
+		const print = vi.spyOn(window, "print").mockImplementation(() => undefined);
+		renderEditor({ onSave, onDirtyChange });
+		fireEvent.change(screen.getByLabelText("Document type"), {
+			target: { value: "Lab Report" },
+		});
+		expect(onDirtyChange).toHaveBeenLastCalledWith(true);
+		fireEvent.click(screen.getByRole("button", { name: "Save cover page" }));
+		expect(await screen.findByText("Save unavailable")).toBeTruthy();
+		expect(onSave).toHaveBeenCalledWith(
+			expect.objectContaining({ docType: "Lab Report", logoDataUrl: "" }),
+		);
+		fireEvent.click(
+			screen.getByRole("button", { name: "Print or save as PDF" }),
+		);
+		expect(print).toHaveBeenCalledOnce();
+	});
+
+	test("disables saving while persistence is pending", () => {
+		renderEditor({ isSaving: true });
+		expect(
+			(screen.getByRole("button", { name: "Saving…" }) as HTMLButtonElement)
+				.disabled,
+		).toBe(true);
+	});
+});
