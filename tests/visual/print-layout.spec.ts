@@ -174,7 +174,7 @@ test("index output matches the migrated static reference", async ({
 		.screenshot({ animations: "disabled" });
 
 	const migrated = await context.newPage();
-	await migrated.goto("http://127.0.0.1:3000/visual-fixtures?kind=index");
+	await migrated.goto("http://127.0.0.1:3100/visual-fixtures?kind=index");
 	await migrated.evaluate(() => document.fonts.ready);
 	await migrated.emulateMedia({ media: "print" });
 	const migratedImage = await migrated
