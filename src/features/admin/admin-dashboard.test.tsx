@@ -132,6 +132,16 @@ const props = {
 afterEach(cleanup);
 
 describe("admin dashboard", () => {
+	test("uses structured cards, stat tiles, and table styling", () => {
+		render(<AdminDashboardView {...props} />);
+		expect(document.querySelectorAll("[data-admin-panel]")).toHaveLength(4);
+		expect(
+			document.querySelectorAll("[data-admin-stat]").length,
+		).toBeGreaterThanOrEqual(4);
+		expect(document.querySelectorAll("[data-admin-table]")).toHaveLength(3);
+		expect(document.querySelector("[data-admin-actions]")).toBeTruthy();
+	});
+
 	test("shows four labeled responsive sections, pagination, cost, and accessible controls", () => {
 		render(<AdminDashboardView {...props} />);
 		for (const name of ["Users", "AI Usage", "Data", "Presets"])

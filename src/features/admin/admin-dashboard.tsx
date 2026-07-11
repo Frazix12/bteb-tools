@@ -73,13 +73,22 @@ export type AdminDashboardProps = {
 };
 export function AdminDashboardView(p: AdminDashboardProps) {
 	return (
-		<main className="mx-auto grid max-w-7xl gap-8 p-4">
-			<header>
-				<h1 className="font-serif text-3xl font-bold">Administration</h1>
-				<p>Manage access, usage, stored data, and reusable presets.</p>
+		<main className="page-wrap grid gap-6 py-8 sm:py-10">
+			<header className="max-w-3xl">
+				<p className="island-kicker">Workspace controls</p>
+				<h1 className="font-serif text-4xl font-bold">Administration</h1>
+				<p className="mt-2 text-muted-foreground">
+					Manage access, monitor AI usage, review stored data, and maintain
+					reusable presets.
+				</p>
 			</header>
 			{p.message && (
-				<p role={p.message.error ? "alert" : "status"}>{p.message.text}</p>
+				<p
+					className={`rounded-xl border px-4 py-3 text-sm ${p.message.error ? "border-destructive/30 bg-destructive/10 text-destructive" : "border-[var(--chip-line)] bg-[var(--chip-bg)]"}`}
+					role={p.message.error ? "alert" : "status"}
+				>
+					{p.message.text}
+				</p>
 			)}
 			<UsersPanel
 				data={p.users}

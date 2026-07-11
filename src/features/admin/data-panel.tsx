@@ -1,6 +1,7 @@
 import { Database, Trash2 } from "lucide-react";
 import { Button } from "#/components/ui/button";
 import { Confirm } from "./admin-dashboard";
+import { AdminPanel, AdminStat, tableClass } from "./admin-ui";
 import type { AdminDocument, Page, PageKind, Summary } from "./types";
 
 type Props = {
@@ -12,21 +13,19 @@ type Props = {
 };
 export function DataPanel({ summary, data, onDelete, onPage, pending }: Props) {
 	return (
-		<section aria-labelledby="data-title">
-			<h2 id="data-title" className="flex gap-2 text-xl font-semibold">
-				<Database aria-hidden="true" />
-				Data
-			</h2>
-			<p>
-				{summary.users} users · {summary.documents} documents ·{" "}
-				{summary.presets} presets
-			</p>
-			<p>
-				{summary.enabledPresets} enabled presets · {summary.disabledPresets}{" "}
-				disabled presets · {summary.aiRequests} AI requests
-			</p>
-			<div className="overflow-x-auto">
-				<table className="w-full text-sm">
+		<AdminPanel
+			title="Data"
+			description="Inspect database totals and remove documents when necessary."
+			icon={<Database aria-hidden="true" className="size-5" />}
+		>
+			<div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+				<AdminStat label="Users" value={summary.users} />
+				<AdminStat label="Documents" value={summary.documents} />
+				<AdminStat label="Enabled presets" value={summary.enabledPresets} />
+				<AdminStat label="AI requests" value={summary.aiRequests} />
+			</div>
+			<div className="overflow-x-auto rounded-xl border border-[var(--line)]">
+				<table data-admin-table className={tableClass}>
 					<thead>
 						<tr>
 							<th>Title</th>
@@ -36,6 +35,16 @@ export function DataPanel({ summary, data, onDelete, onPage, pending }: Props) {
 						</tr>
 					</thead>
 					<tbody>
+						{data.items.length === 0 && (
+							<tr>
+								<td
+									colSpan={4}
+									className="py-10 text-center text-muted-foreground"
+								>
+									No documents have been saved yet.
+								</td>
+							</tr>
+						)}
 						{data.items.map((d) => (
 							<tr key={d.id}>
 								<td>{d.title}</td>
@@ -62,14 +71,16 @@ export function DataPanel({ summary, data, onDelete, onPage, pending }: Props) {
 					</tbody>
 				</table>
 			</div>
-			<Button
-				variant="outline"
-				aria-label="Next page"
-				disabled={pending || data.page * data.pageSize >= data.total}
-				onClick={() => onPage("documents", data.page + 1)}
-			>
-				Next page
-			</Button>
-		</section>
+			<div className="flex justify-end">
+				<Button
+					variant="outline"
+					aria-label="Next page"
+					disabled={pending || data.page * data.pageSize >= data.total}
+					onClick={() => onPage("documents", data.page + 1)}
+				>
+					Next page
+				</Button>
+			</div>
+		</AdminPanel>
 	);
 }

@@ -9,6 +9,7 @@ import {
 	IndexSheetDataSchema,
 } from "#/orpc/schemas/document";
 import { Confirm } from "./admin-dashboard";
+import { AdminPanel, tableClass } from "./admin-ui";
 import type {
 	AdminPreset,
 	Message,
@@ -126,17 +127,19 @@ export function PresetsPanel({
 		}
 	}
 	return (
-		<section aria-labelledby="presets-title">
-			<h2 id="presets-title" className="flex gap-2 text-xl font-semibold">
-				<LibraryBig aria-hidden="true" />
-				Presets
-			</h2>
-			<Button disabled={pending} onClick={() => edit()}>
-				<Plus aria-hidden="true" />
-				New preset
-			</Button>
+		<AdminPanel
+			title="Presets"
+			description="Create and maintain reusable document starting points."
+			icon={<LibraryBig aria-hidden="true" className="size-5" />}
+			action={
+				<Button disabled={pending} onClick={() => edit()}>
+					<Plus aria-hidden="true" />
+					New preset
+				</Button>
+			}
+		>
 			{form && (
-				<div className="grid gap-2">
+				<div className="grid gap-3 rounded-xl border border-[var(--line)] bg-white/50 p-4 sm:grid-cols-2">
 					<Label htmlFor="preset-slug">Slug</Label>
 					<Input
 						id="preset-slug"
@@ -200,86 +203,99 @@ export function PresetsPanel({
 						Enabled
 					</label>
 					<FieldError field="enabled" message={message} />
-					<Label htmlFor="preset-json">Preset data (JSON)</Label>
-					<Textarea
-						id="preset-json"
-						value={json}
-						aria-invalid={Boolean(message?.fields?.data) || Boolean(error)}
-						aria-describedby={
-							error
-								? "preset-json-error"
-								: message?.fields?.data
-									? "preset-data-error"
-									: undefined
-						}
-						onChange={(e) => setJson(e.target.value)}
-					/>
-					<FieldError field="data" message={message} />
-					{error && (
-						<p id="preset-json-error" role="alert">
-							{error}
-						</p>
-					)}
+					<div className="sm:col-span-2">
+						<Label htmlFor="preset-json">Preset data (JSON)</Label>
+						<Textarea
+							id="preset-json"
+							value={json}
+							aria-invalid={Boolean(message?.fields?.data) || Boolean(error)}
+							aria-describedby={
+								error
+									? "preset-json-error"
+									: message?.fields?.data
+										? "preset-data-error"
+										: undefined
+							}
+							onChange={(e) => setJson(e.target.value)}
+						/>
+						<FieldError field="data" message={message} />
+						{error && (
+							<p id="preset-json-error" role="alert">
+								{error}
+							</p>
+						)}
+					</div>
 					<Button disabled={pending} onClick={save}>
 						{editId ? "Update preset" : "Save preset"}
 					</Button>
 				</div>
 			)}
-			<div className="overflow-x-auto">
-				<table className="w-full text-sm">
+			<div className="overflow-x-auto rounded-xl border border-[var(--line)]">
+				<table data-admin-table className={tableClass}>
+					<thead>
+						<tr>
+							<th>Preset</th>
+							<th>Status</th>
+							<th>Actions</th>
+						</tr>
+					</thead>
 					<tbody>
 						{data.items.map((p) => (
 							<tr key={p.id}>
 								<td>{p.title}</td>
 								<td>{p.enabled ? "Enabled" : "Disabled"}</td>
 								<td>
-									<Button
-										disabled={pending}
-										aria-label={`Edit ${p.title}`}
-										onClick={() => edit(p)}
-									>
-										<Pencil aria-hidden="true" />
-										Edit
-									</Button>
-									<Button
-										disabled={pending}
-										onClick={() => onToggle(p, !p.enabled)}
-									>
-										{p.enabled ? "Disable" : "Enable"} {p.title}
-									</Button>
-									<Confirm
-										title={`Delete ${p.title}?`}
-										description="This permanently deletes the preset."
-										action="Delete permanently"
-										onConfirm={() => onDelete(p.id)}
-									>
+									<div className="flex flex-wrap gap-2">
 										<Button
 											disabled={pending}
-											variant="destructive"
-											aria-label={`Delete ${p.title}`}
+											aria-label={`Edit ${p.title}`}
+											onClick={() => edit(p)}
 										>
-											<Trash2 aria-hidden="true" />
+											<Pencil aria-hidden="true" />
+											Edit
 										</Button>
-									</Confirm>
+										<Button
+											disabled={pending}
+											onClick={() => onToggle(p, !p.enabled)}
+										>
+											{p.enabled ? "Disable" : "Enable"} {p.title}
+										</Button>
+										<Confirm
+											title={`Delete ${p.title}?`}
+											description="This permanently deletes the preset."
+											action="Delete permanently"
+											onConfirm={() => onDelete(p.id)}
+										>
+											<Button
+												disabled={pending}
+												variant="destructive"
+												aria-label={`Delete ${p.title}`}
+											>
+												<Trash2 aria-hidden="true" />
+											</Button>
+										</Confirm>
+									</div>
 								</td>
 							</tr>
 						))}
 					</tbody>
 				</table>
 			</div>
-			<Button
-				disabled={pending || data.page <= 1}
-				onClick={() => onPage("presets", data.page - 1)}
-			>
-				Previous page
-			</Button>
-			<Button
-				aria-label="Next page"
-				disabled={pending || data.page * data.pageSize >= data.total}
-				onClick={() => onPage("presets", data.page + 1)}
-			>
-				Next page
-			</Button>
-		</section>
+			<div className="flex justify-between gap-2">
+				<Button
+					disabled={pending || data.page <= 1}
+					onClick={() => onPage("presets", data.page - 1)}
+				>
+					Previous page
+				</Button>
+				<Button
+					aria-label="Next page"
+					disabled={pending || data.page * data.pageSize >= data.total}
+					onClick={() => onPage("presets", data.page + 1)}
+				>
+					Next page
+				</Button>
+			</div>
+		</AdminPanel>
 	);
 }

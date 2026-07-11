@@ -1,6 +1,7 @@
 import { Shield, Users } from "lucide-react";
 import { Button } from "#/components/ui/button";
 import { Confirm } from "./admin-dashboard";
+import { AdminPanel, tableClass } from "./admin-ui";
 import type { AdminUser, Page, PageKind } from "./types";
 
 type Props = {
@@ -23,13 +24,13 @@ export function UsersPanel({
 	bootstrapEmail,
 }: Props) {
 	return (
-		<section aria-labelledby="users-title">
-			<h2 id="users-title" className="flex gap-2 text-xl font-semibold">
-				<Users aria-hidden="true" />
-				Users
-			</h2>
-			<div className="overflow-x-auto">
-				<table className="w-full text-sm">
+		<AdminPanel
+			title="Users"
+			description="Review accounts, activity, and administrative access."
+			icon={<Users aria-hidden="true" className="size-5" />}
+		>
+			<div className="overflow-x-auto rounded-xl border border-[var(--line)]">
+				<table data-admin-table className={tableClass}>
 					<thead>
 						<tr>
 							<th>Name</th>
@@ -93,21 +94,31 @@ export function UsersPanel({
 					</tbody>
 				</table>
 			</div>
-			<Button
-				variant="outline"
-				disabled={pending || data.page <= 1}
-				onClick={() => onPage("users", data.page - 1)}
+			<div
+				data-admin-actions
+				className="flex flex-wrap items-center justify-between gap-3"
 			>
-				Previous page
-			</Button>
-			<Button
-				variant="outline"
-				aria-label="Next page"
-				disabled={pending || data.page * data.pageSize >= data.total}
-				onClick={() => onPage("users", data.page + 1)}
-			>
-				Next page
-			</Button>
-		</section>
+				<p className="text-sm text-muted-foreground">
+					Page {data.page} · {data.total} users
+				</p>
+				<div className="flex gap-2">
+					<Button
+						variant="outline"
+						disabled={pending || data.page <= 1}
+						onClick={() => onPage("users", data.page - 1)}
+					>
+						Previous page
+					</Button>
+					<Button
+						variant="outline"
+						aria-label="Next page"
+						disabled={pending || data.page * data.pageSize >= data.total}
+						onClick={() => onPage("users", data.page + 1)}
+					>
+						Next page
+					</Button>
+				</div>
+			</div>
+		</AdminPanel>
 	);
 }
