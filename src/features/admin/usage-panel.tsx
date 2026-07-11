@@ -1,5 +1,6 @@
 import { ChartNoAxesCombined } from "lucide-react";
-export function UsagePanel({ data }: any) {
+import type { Usage } from "./types";
+export function UsagePanel({ data }: { data: Usage }) {
 	const t = data.totals;
 	return (
 		<section aria-labelledby="usage-title">

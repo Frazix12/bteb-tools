@@ -12,6 +12,17 @@ import {
 } from "#/components/ui/alert-dialog";
 import { DataPanel } from "./data-panel";
 import { PresetsPanel } from "./presets-panel";
+import type {
+	AdminDocument,
+	AdminPreset,
+	AdminUser,
+	Message,
+	Page,
+	PageKind,
+	PresetInput,
+	Summary,
+	Usage,
+} from "./types";
 import { UsagePanel } from "./usage-panel";
 import { UsersPanel } from "./users-panel";
 export function Confirm({
@@ -43,7 +54,23 @@ export function Confirm({
 		</AlertDialog>
 	);
 }
-export function AdminDashboardView(p: any) {
+export type AdminDashboardProps = {
+	users: Page<AdminUser>;
+	usage: Usage;
+	summary: Summary;
+	documents: Page<AdminDocument>;
+	presets: Page<AdminPreset>;
+	bootstrapEmail: string;
+	pending: boolean;
+	message: Message;
+	onPage: (kind: PageKind, page: number) => void;
+	onRole: (user: AdminUser, role: "user" | "admin") => void;
+	onDeleteDocument: (id: string) => void;
+	onSavePreset: (input: PresetInput, id?: string) => void;
+	onTogglePreset: (preset: AdminPreset, enabled: boolean) => void;
+	onDeletePreset: (id: string) => void;
+};
+export function AdminDashboardView(p: AdminDashboardProps) {
 	return (
 		<main className="mx-auto grid max-w-7xl gap-8 p-4">
 			<header>
@@ -58,6 +85,7 @@ export function AdminDashboardView(p: any) {
 				onRole={p.onRole}
 				onPage={p.onPage}
 				pending={p.pending}
+				bootstrapEmail={p.bootstrapEmail}
 			/>
 			<UsagePanel data={p.usage} />
 			<DataPanel
@@ -73,6 +101,8 @@ export function AdminDashboardView(p: any) {
 				onToggle={p.onTogglePreset}
 				onDelete={p.onDeletePreset}
 				pending={p.pending}
+				onPage={p.onPage}
+				message={p.message}
 			/>
 		</main>
 	);

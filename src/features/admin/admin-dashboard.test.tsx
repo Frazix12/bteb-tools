@@ -9,9 +9,16 @@ const props = {
 			{
 				id: "bootstrap",
 				name: "Owner",
-				email: "admin@example.com",
+				email: "root@example.com",
 				role: "admin" as const,
 				documentCount: 2,
+			},
+			{
+				id: "user",
+				name: "User",
+				email: "user@example.com",
+				role: "user" as const,
+				documentCount: 0,
 			},
 		],
 		total: 21,
@@ -64,7 +71,8 @@ const props = {
 	onSavePreset: vi.fn(),
 	onTogglePreset: vi.fn(),
 	onDeletePreset: vi.fn(),
-	pending: null,
+	bootstrapEmail: "root@example.com",
+	pending: false,
 	message: null,
 };
 afterEach(cleanup);
@@ -89,11 +97,18 @@ describe("admin dashboard", () => {
 		expect(
 			(
 				screen.getByRole("button", {
-					name: "Change role for admin@example.com",
+					name: "Change role for root@example.com",
 				}) as HTMLButtonElement
 			).disabled,
 		).toBe(true);
 		expect(screen.getByText("Bootstrap admin")).toBeTruthy();
+		fireEvent.click(
+			screen.getByRole("button", { name: "Change role for user@example.com" }),
+		);
+		fireEvent.click(
+			screen.getByRole("button", { name: "Confirm role change" }),
+		);
+		expect(props.onRole).toHaveBeenCalledWith(props.users.items[1], "admin");
 	});
 
 	test("validates preset JSON and confirms destructive actions", () => {
@@ -106,7 +121,10 @@ describe("admin dashboard", () => {
 		expect(screen.getByRole("alert").textContent).toContain("valid JSON");
 		fireEvent.click(screen.getByRole("button", { name: "Delete Lab report" }));
 		expect(screen.getByRole("alertdialog")).toBeTruthy();
-		fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+		fireEvent.click(screen.getByRole("button", { name: "Delete permanently" }));
+		expect(props.onDeleteDocument).toHaveBeenCalledWith(
+			props.documents.items[0].id,
+		);
 		fireEvent.click(screen.getByRole("button", { name: "Disable Lab preset" }));
 		expect(props.onTogglePreset).toHaveBeenCalledWith(
 			props.presets.items[0],
@@ -114,5 +132,51 @@ describe("admin dashboard", () => {
 		);
 		fireEvent.click(screen.getByRole("button", { name: "Delete Lab preset" }));
 		expect(screen.getByRole("alertdialog")).toBeTruthy();
+		fireEvent.click(screen.getByRole("button", { name: "Delete permanently" }));
+		expect(props.onDeletePreset).toHaveBeenCalledWith(
+			props.presets.items[0].id,
+		);
+	});
+
+	test("disables actions while pending and paginates each list", () => {
+		const { rerender } = render(<AdminDashboardView {...props} />);
+		for (const button of screen.getAllByRole("button", { name: "Next page" }))
+			fireEvent.click(button);
+		expect(props.onPage).toHaveBeenCalledWith("users", 2);
+		expect(props.onPage).toHaveBeenCalledWith("documents", 2);
+		rerender(<AdminDashboardView {...props} pending />);
+		expect(
+			(screen.getByRole("button", { name: "New preset" }) as HTMLButtonElement)
+				.disabled,
+		).toBe(true);
+		expect(
+			(
+				screen.getByRole("button", {
+					name: "Delete Lab report",
+				}) as HTMLButtonElement
+			).disabled,
+		).toBe(true);
+	});
+
+	test("loads all preset fields for editing and exposes server field errors", () => {
+		render(
+			<AdminDashboardView
+				{...props}
+				message={{
+					error: true,
+					text: "Invalid preset",
+					fields: { slug: "Slug already exists" },
+				}}
+			/>,
+		);
+		fireEvent.click(screen.getByRole("button", { name: "Edit Lab preset" }));
+		expect((screen.getByLabelText("Slug") as HTMLInputElement).value).toBe(
+			"lab",
+		);
+		expect((screen.getByLabelText("Title") as HTMLInputElement).value).toBe(
+			"Lab preset",
+		);
+		expect(screen.getByRole("button", { name: "Update preset" })).toBeTruthy();
+		expect(screen.getByText("Slug already exists")).toBeTruthy();
 	});
 });

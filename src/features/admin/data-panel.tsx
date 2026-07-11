@@ -1,7 +1,16 @@
 import { Database, Trash2 } from "lucide-react";
 import { Button } from "#/components/ui/button";
 import { Confirm } from "./admin-dashboard";
-export function DataPanel({ summary, data, onDelete, onPage, pending }: any) {
+import type { AdminDocument, Page, PageKind, Summary } from "./types";
+
+type Props = {
+	summary: Summary;
+	data: Page<AdminDocument>;
+	onDelete: (id: string) => void;
+	onPage: (k: PageKind, p: number) => void;
+	pending: boolean;
+};
+export function DataPanel({ summary, data, onDelete, onPage, pending }: Props) {
 	return (
 		<section aria-labelledby="data-title">
 			<h2 id="data-title" className="flex gap-2 text-xl font-semibold">
@@ -23,7 +32,7 @@ export function DataPanel({ summary, data, onDelete, onPage, pending }: any) {
 						</tr>
 					</thead>
 					<tbody>
-						{data.items.map((d: any) => (
+						{data.items.map((d) => (
 							<tr key={d.id}>
 								<td>{d.title}</td>
 								<td>{d.ownerEmail}</td>
@@ -37,7 +46,7 @@ export function DataPanel({ summary, data, onDelete, onPage, pending }: any) {
 									>
 										<Button
 											variant="destructive"
-											disabled={pending === `document:${d.id}`}
+											disabled={pending}
 											aria-label={`Delete ${d.title}`}
 										>
 											<Trash2 aria-hidden="true" />
@@ -52,7 +61,7 @@ export function DataPanel({ summary, data, onDelete, onPage, pending }: any) {
 			<Button
 				variant="outline"
 				aria-label="Next page"
-				disabled={data.page * data.pageSize >= data.total}
+				disabled={pending || data.page * data.pageSize >= data.total}
 				onClick={() => onPage("documents", data.page + 1)}
 			>
 				Next page

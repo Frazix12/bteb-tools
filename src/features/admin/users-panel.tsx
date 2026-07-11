@@ -1,7 +1,22 @@
 import { Shield, Users } from "lucide-react";
 import { Button } from "#/components/ui/button";
 import { Confirm } from "./admin-dashboard";
-export function UsersPanel({ data, onRole, onPage, pending }: any) {
+import type { AdminUser, Page, PageKind } from "./types";
+
+type Props = {
+	data: Page<AdminUser>;
+	onRole: (u: AdminUser, r: "user" | "admin") => void;
+	onPage: (k: PageKind, p: number) => void;
+	pending: boolean;
+	bootstrapEmail: string;
+};
+export function UsersPanel({
+	data,
+	onRole,
+	onPage,
+	pending,
+	bootstrapEmail,
+}: Props) {
 	return (
 		<section aria-labelledby="users-title">
 			<h2 id="users-title" className="flex gap-2 text-xl font-semibold">
@@ -20,14 +35,15 @@ export function UsersPanel({ data, onRole, onPage, pending }: any) {
 						</tr>
 					</thead>
 					<tbody>
-						{data.items.map((u: any) => (
+						{data.items.map((u) => (
 							<tr key={u.id}>
 								<td>{u.name}</td>
 								<td>{u.email}</td>
 								<td>{u.role}</td>
 								<td>{u.documentCount}</td>
 								<td>
-									{u.email === "admin@example.com" ? (
+									{u.email.trim().toLowerCase() ===
+									bootstrapEmail.trim().toLowerCase() ? (
 										<>
 											<Button
 												disabled
@@ -48,7 +64,7 @@ export function UsersPanel({ data, onRole, onPage, pending }: any) {
 											}
 										>
 											<Button
-												disabled={pending === `user:${u.id}`}
+												disabled={pending}
 												aria-label={`Change role for ${u.email}`}
 											>
 												<Shield aria-hidden="true" />
@@ -64,7 +80,7 @@ export function UsersPanel({ data, onRole, onPage, pending }: any) {
 			</div>
 			<Button
 				variant="outline"
-				disabled={data.page <= 1}
+				disabled={pending || data.page <= 1}
 				onClick={() => onPage("users", data.page - 1)}
 			>
 				Previous page
@@ -72,7 +88,7 @@ export function UsersPanel({ data, onRole, onPage, pending }: any) {
 			<Button
 				variant="outline"
 				aria-label="Next page"
-				disabled={data.page * data.pageSize >= data.total}
+				disabled={pending || data.page * data.pageSize >= data.total}
 				onClick={() => onPage("users", data.page + 1)}
 			>
 				Next page

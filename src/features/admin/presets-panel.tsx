@@ -1,36 +1,114 @@
-import { LibraryBig, Plus, Trash2 } from "lucide-react";
+import { LibraryBig, Pencil, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { Button } from "#/components/ui/button";
 import { Input } from "#/components/ui/input";
 import { Label } from "#/components/ui/label";
 import { Textarea } from "#/components/ui/textarea";
+import {
+	CoverPageDataSchema,
+	IndexSheetDataSchema,
+} from "#/orpc/schemas/document";
 import { Confirm } from "./admin-dashboard";
+import type {
+	AdminPreset,
+	Message,
+	Page,
+	PageKind,
+	PresetInput,
+} from "./types";
+
+type Props = {
+	data: Page<AdminPreset>;
+	onSave: (v: PresetInput, id?: string) => void;
+	onToggle: (p: AdminPreset, e: boolean) => void;
+	onDelete: (id: string) => void;
+	onPage: (k: PageKind, p: number) => void;
+	pending: boolean;
+	message: Message;
+};
+type Draft = {
+	slug: string;
+	title: string;
+	description: string;
+	type: "cover_page" | "index_sheet";
+	enabled: boolean;
+	data: unknown;
+};
+const empty: Draft = {
+	slug: "",
+	title: "",
+	description: "",
+	type: "cover_page",
+	enabled: true,
+	data: {},
+};
 export function PresetsPanel({
 	data,
 	onSave,
 	onToggle,
 	onDelete,
+	onPage,
 	pending,
-}: any) {
-	const [open, setOpen] = useState(false),
+	message,
+}: Props) {
+	const [form, setForm] = useState<Draft | null>(null),
+		[editId, setEditId] = useState<string>(),
 		[json, setJson] = useState("{}"),
 		[error, setError] = useState("");
+	const set = (key: keyof Draft, value: Draft[keyof Draft]) =>
+		setForm((f) => (f ? { ...f, [key]: value } : f));
+	function edit(p?: AdminPreset) {
+		const value: Draft = p
+			? {
+					slug: p.slug,
+					title: p.title,
+					description: p.description,
+					type: p.type,
+					enabled: p.enabled,
+					data: p.data,
+				}
+			: empty;
+		setForm({ ...value });
+		setEditId(p?.id);
+		setJson(JSON.stringify(value.data, null, 2));
+		setError("");
+	}
 	function save() {
+		if (!form) return;
 		try {
-			const parsed = JSON.parse(json);
-			if (!parsed.schemaVersion) throw new Error();
-			onSave({
-				slug: "new-preset",
-				title: "New preset",
-				description: "",
-				type: "cover_page",
-				enabled: true,
-				data: parsed,
-			});
+			const parsed: unknown = JSON.parse(json);
+			const result =
+				form.type === "cover_page"
+					? CoverPageDataSchema.safeParse(parsed)
+					: IndexSheetDataSchema.safeParse(parsed);
+			if (!result.success) {
+				setError("Preset data must match the selected document schema.");
+				return;
+			}
+			if (!form.slug.trim() || !form.title.trim()) {
+				setError("Slug and title are required.");
+				return;
+			}
+			if (form.type === "cover_page")
+				onSave(
+					{
+						...form,
+						type: "cover_page",
+						data: CoverPageDataSchema.parse(parsed),
+					},
+					editId,
+				);
+			else
+				onSave(
+					{
+						...form,
+						type: "index_sheet",
+						data: IndexSheetDataSchema.parse(parsed),
+					},
+					editId,
+				);
 		} catch {
-			setError(
-				"Preset data must be valid JSON matching the selected document schema.",
-			);
+			setError("Preset data must be valid JSON.");
 		}
 	}
 	return (
@@ -39,14 +117,49 @@ export function PresetsPanel({
 				<LibraryBig aria-hidden="true" />
 				Presets
 			</h2>
-			<Button onClick={() => setOpen(!open)}>
+			<Button disabled={pending} onClick={() => edit()}>
 				<Plus aria-hidden="true" />
 				New preset
 			</Button>
-			{open && (
+			{form && (
 				<div className="grid gap-2">
+					<Label htmlFor="preset-slug">Slug</Label>
+					<Input
+						id="preset-slug"
+						value={form.slug}
+						aria-invalid={Boolean(message?.fields?.slug)}
+						onChange={(e) => set("slug", e.target.value)}
+					/>
+					{message?.fields?.slug && <p role="alert">{message.fields.slug}</p>}
 					<Label htmlFor="preset-title">Title</Label>
-					<Input id="preset-title" />
+					<Input
+						id="preset-title"
+						value={form.title}
+						onChange={(e) => set("title", e.target.value)}
+					/>
+					<Label htmlFor="preset-description">Description</Label>
+					<Input
+						id="preset-description"
+						value={form.description}
+						onChange={(e) => set("description", e.target.value)}
+					/>
+					<Label htmlFor="preset-type">Type</Label>
+					<select
+						id="preset-type"
+						value={form.type}
+						onChange={(e) => set("type", e.target.value as PresetInput["type"])}
+					>
+						<option value="cover_page">Cover page</option>
+						<option value="index_sheet">Index sheet</option>
+					</select>
+					<label>
+						<input
+							type="checkbox"
+							checked={form.enabled}
+							onChange={(e) => set("enabled", e.target.checked)}
+						/>
+						Enabled
+					</label>
 					<Label htmlFor="preset-json">Preset data (JSON)</Label>
 					<Textarea
 						id="preset-json"
@@ -54,19 +167,29 @@ export function PresetsPanel({
 						onChange={(e) => setJson(e.target.value)}
 					/>
 					{error && <p role="alert">{error}</p>}
-					<Button onClick={save}>Save preset</Button>
+					<Button disabled={pending} onClick={save}>
+						{editId ? "Update preset" : "Save preset"}
+					</Button>
 				</div>
 			)}
 			<div className="overflow-x-auto">
 				<table className="w-full text-sm">
 					<tbody>
-						{data.items.map((p: any) => (
+						{data.items.map((p) => (
 							<tr key={p.id}>
 								<td>{p.title}</td>
 								<td>{p.enabled ? "Enabled" : "Disabled"}</td>
 								<td>
 									<Button
-										disabled={pending === `preset:${p.id}`}
+										disabled={pending}
+										aria-label={`Edit ${p.title}`}
+										onClick={() => edit(p)}
+									>
+										<Pencil aria-hidden="true" />
+										Edit
+									</Button>
+									<Button
+										disabled={pending}
 										onClick={() => onToggle(p, !p.enabled)}
 									>
 										{p.enabled ? "Disable" : "Enable"} {p.title}
@@ -78,6 +201,7 @@ export function PresetsPanel({
 										onConfirm={() => onDelete(p.id)}
 									>
 										<Button
+											disabled={pending}
 											variant="destructive"
 											aria-label={`Delete ${p.title}`}
 										>
@@ -90,6 +214,19 @@ export function PresetsPanel({
 					</tbody>
 				</table>
 			</div>
+			<Button
+				disabled={pending || data.page <= 1}
+				onClick={() => onPage("presets", data.page - 1)}
+			>
+				Previous page
+			</Button>
+			<Button
+				aria-label="Next page"
+				disabled={pending || data.page * data.pageSize >= data.total}
+				onClick={() => onPage("presets", data.page + 1)}
+			>
+				Next page
+			</Button>
 		</section>
 	);
 }
