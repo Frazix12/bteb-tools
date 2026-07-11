@@ -4,8 +4,14 @@ import { z } from "zod";
 import {
 	extractAutofill,
 	NoMeaningfulAutofillFieldsError,
+	ProviderAutofillError,
 } from "#/features/autofill/extract";
 import { consumeAutofillQuota } from "#/features/autofill/rate-limit";
+import {
+	type AiUsageOutcome,
+	type AiUsageRepository,
+	drizzleAiUsageRepository,
+} from "#/features/autofill/usage-repository";
 import type { DocumentType } from "#/features/documents/types";
 import { protectedProcedure } from "#/orpc/middleware/auth";
 import { DocumentTypeSchema } from "#/orpc/schemas/document";
@@ -21,6 +27,7 @@ interface AutofillRouterDependencies {
 		type: DocumentType,
 		text: string,
 	) => ReturnType<typeof extractAutofill>;
+	usageRepository?: AiUsageRepository;
 }
 
 export function createAutofillRouter(dependencies: AutofillRouterDependencies) {
@@ -28,6 +35,16 @@ export function createAutofillRouter(dependencies: AutofillRouterDependencies) {
 		extract: protectedProcedure
 			.input(AutofillInputSchema)
 			.handler(async ({ context, input }) => {
+				const record = async (
+					usage: Omit<Parameters<AiUsageRepository["record"]>[0], "outcome">,
+					outcome: AiUsageOutcome,
+				) => {
+					try {
+						await dependencies.usageRepository?.record({ ...usage, outcome });
+					} catch (error) {
+						console.error("Failed to record AI usage", error);
+					}
+				};
 				const quota = await dependencies.consumeQuota(
 					context.user.id,
 					new Date(),
@@ -40,12 +57,39 @@ export function createAutofillRouter(dependencies: AutofillRouterDependencies) {
 				}
 
 				try {
-					return await dependencies.extract(input.type, input.text);
+					const result = await dependencies.extract(input.type, input.text);
+					await record(
+						{
+							ownerId: context.user.id,
+							...result.usage,
+							createdAt: new Date(),
+						},
+						"success",
+					);
+					return result;
 				} catch (error) {
 					if (error instanceof NoMeaningfulAutofillFieldsError) {
+						await record(
+							{
+								ownerId: context.user.id,
+								...error.usage,
+								createdAt: new Date(),
+							},
+							"no_meaningful_fields",
+						);
 						throw new ORPCError("UNPROCESSABLE_CONTENT", {
 							message: error.message,
 						});
+					}
+					if (error instanceof ProviderAutofillError) {
+						await record(
+							{
+								ownerId: context.user.id,
+								...error.usage,
+								createdAt: new Date(),
+							},
+							"provider_error",
+						);
 					}
 					throw new ORPCError("INTERNAL_SERVER_ERROR", {
 						message: "AI extraction is temporarily unavailable.",
@@ -58,4 +102,5 @@ export function createAutofillRouter(dependencies: AutofillRouterDependencies) {
 export const autofillRouter = createAutofillRouter({
 	consumeQuota: consumeAutofillQuota,
 	extract: extractAutofill,
+	usageRepository: drizzleAiUsageRepository,
 });

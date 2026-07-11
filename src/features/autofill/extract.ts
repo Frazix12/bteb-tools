@@ -3,6 +3,7 @@ import { createGeminiChat, type GeminiTextModel } from "@tanstack/ai-gemini";
 import { z } from "zod";
 
 import type { DocumentType } from "#/features/documents/types";
+import type { AiGenerationUsage } from "./pricing";
 import { buildAutofillPrompt } from "./prompts";
 
 const optionalText = (maximum: number) => z.string().max(maximum).optional();
@@ -108,6 +109,7 @@ export interface AutofillResult {
 	patch: AutofillPatch;
 	extractedFieldCount: number;
 	warnings: string[];
+	usage: AiGenerationUsage;
 }
 
 interface GenerateRequest {
@@ -118,16 +120,29 @@ interface GenerateRequest {
 		| typeof CoverAutofillProviderSchema;
 }
 
-export type AutofillGenerator = (request: GenerateRequest) => Promise<unknown>;
+export interface AutofillGeneration {
+	value: unknown;
+	usage: AiGenerationUsage;
+}
+export type AutofillGenerator = (
+	request: GenerateRequest,
+) => Promise<AutofillGeneration | unknown>;
 
 export class ProviderAutofillError extends Error {
-	constructor() {
+	constructor(
+		public readonly usage: AiGenerationUsage = {
+			provider: "google",
+			model: "unknown",
+			inputTokens: null,
+			outputTokens: null,
+		},
+	) {
 		super("AI extraction is temporarily unavailable.");
 	}
 }
 
 export class NoMeaningfulAutofillFieldsError extends Error {
-	constructor() {
+	constructor(public readonly usage: AiGenerationUsage) {
 		super("No meaningful fields could be extracted.");
 	}
 }
@@ -167,11 +182,30 @@ const geminiGenerate: AutofillGenerator = async ({ prompt, schema }) => {
 		env.GEMINI_MODEL as GeminiTextModel,
 		env.GEMINI_API_KEY,
 	);
-	return chat({
+	let tokens = {
+		inputTokens: null as number | null,
+		outputTokens: null as number | null,
+	};
+	const value = await chat({
 		adapter,
 		messages: [{ role: "user", content: prompt }],
 		outputSchema: schema,
+		middleware: [
+			{
+				name: "capture-usage",
+				onUsage: (_context, info) => {
+					tokens = {
+						inputTokens: info.promptTokens,
+						outputTokens: info.completionTokens,
+					};
+				},
+			},
+		],
 	});
+	return {
+		value,
+		usage: { provider: "google", model: env.GEMINI_MODEL, ...tokens },
+	};
 };
 
 export function createAutofillExtractor(
@@ -187,15 +221,27 @@ export function createAutofillExtractor(
 				? IndexAutofillProviderSchema
 				: CoverAutofillProviderSchema;
 		let parsed: AutofillPatch;
+		let usage: AiGenerationUsage | null = null;
 		try {
 			const generated = await generate({
 				type,
 				prompt: buildAutofillPrompt(type, text),
 				schema: providerSchema,
 			});
-			parsed = validationSchema.parse(generated);
-		} catch {
-			throw new ProviderAutofillError();
+			const response = generated as Partial<AutofillGeneration>;
+			usage = response.usage ?? {
+				provider: "google",
+				model: "unknown",
+				inputTokens: null,
+				outputTokens: null,
+			};
+			parsed = validationSchema.parse(
+				Object.hasOwn(response, "value") ? response.value : generated,
+			);
+		} catch (error) {
+			throw error instanceof ProviderAutofillError
+				? error
+				: new ProviderAutofillError(usage ?? undefined);
 		}
 
 		const patch = (compact(parsed) ?? {}) as AutofillPatch;
@@ -210,10 +256,10 @@ export function createAutofillExtractor(
 			(type === "cover_page" && extractedFieldCount < 2) ||
 			(type === "index_sheet" && !hasNamedExperiment)
 		) {
-			throw new NoMeaningfulAutofillFieldsError();
+			throw new NoMeaningfulAutofillFieldsError(usage);
 		}
 
-		return { type, patch, extractedFieldCount, warnings: [] };
+		return { type, patch, extractedFieldCount, warnings: [], usage };
 	};
 }
 

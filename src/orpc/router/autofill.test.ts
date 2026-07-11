@@ -4,6 +4,10 @@ import { beforeEach, describe, expect, test, vi } from "vitest";
 const { getSessionMock } = vi.hoisted(() => ({ getSessionMock: vi.fn() }));
 vi.mock("#/lib/session", () => ({ getSession: getSessionMock }));
 
+import {
+	NoMeaningfulAutofillFieldsError,
+	ProviderAutofillError,
+} from "#/features/autofill/extract";
 import { createAutofillRouter } from "./autofill";
 
 describe("autofill procedures", () => {
@@ -139,5 +143,48 @@ describe("autofill procedures", () => {
 			code: "INTERNAL_SERVER_ERROR",
 			message: "AI extraction is temporarily unavailable.",
 		});
+	});
+
+	test.each([
+		["success", null],
+		["no_meaningful_fields", NoMeaningfulAutofillFieldsError],
+		["provider_error", ProviderAutofillError],
+	] as const)("records one privacy-safe %s event", async (outcome, ErrorType) => {
+		getSessionMock.mockResolvedValue({ user: { id: "owner-1" }, session: {} });
+		const usage = {
+			provider: "google",
+			model: "gemini-3.1-flash-lite",
+			inputTokens: 12,
+			outputTokens: 4,
+		};
+		const result = {
+			type: "cover_page" as const,
+			patch: { instituteName: "A", docType: "B" },
+			extractedFieldCount: 2,
+			warnings: [],
+			usage,
+		};
+		const extract = ErrorType
+			? vi.fn().mockRejectedValue(new ErrorType(usage))
+			: vi.fn().mockResolvedValue(result);
+		const record = vi.fn().mockResolvedValue(undefined);
+		const client = createRouterClient(
+			createAutofillRouter({
+				consumeQuota: vi
+					.fn()
+					.mockResolvedValue({ allowed: true, remaining: 9, retryAt: null }),
+				extract,
+				usageRepository: { record },
+			}),
+			{ context: { headers: new Headers() } },
+		);
+		await client
+			.extract({ type: "cover_page", text: "private source text" })
+			.catch(() => undefined);
+		expect(record).toHaveBeenCalledTimes(1);
+		const event = record.mock.calls[0]?.[0];
+		expect(event).toMatchObject({ ownerId: "owner-1", outcome, ...usage });
+		for (const key of ["text", "prompt", "patch"])
+			expect(event).not.toHaveProperty(key);
 	});
 });

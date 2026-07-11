@@ -36,6 +36,12 @@ describe("autofill extraction", () => {
 			},
 			extractedFieldCount: 3,
 			warnings: [],
+			usage: {
+				provider: "google",
+				model: "unknown",
+				inputTokens: null,
+				outputTokens: null,
+			},
 		});
 		expect(generate).toHaveBeenCalledWith(
 			expect.objectContaining({ type: "cover_page" }),

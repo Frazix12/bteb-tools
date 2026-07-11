@@ -68,6 +68,12 @@ describe("autofill dialog", () => {
 			},
 			extractedFieldCount: 2,
 			warnings: ["Check dates"],
+			usage: {
+				provider: "google",
+				model: "gemini-3.1-flash-lite",
+				inputTokens: 10,
+				outputTokens: 5,
+			},
 		});
 		expect(await screen.findByText("Review suggested changes")).toBeTruthy();
 		expect(screen.getByText("Replace all index entries")).toBeTruthy();
