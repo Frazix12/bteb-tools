@@ -30,3 +30,7 @@ Standard paid-tier text rates per 1M tokens encoded:
 ## Self-review
 
 No prompt/source text or extracted patch crosses the repository boundary. Null token counts are stored as zero because the existing accounting table uses non-null bigint columns; the typed capture result retains null to distinguish unavailable provider usage. Unknown models estimate zero cost under the current pricing version.
+
+## Review follow-up
+
+Fixed provider token loss when Gemini reports usage and then rejects: the provider boundary now catches the rejection and throws a sanitized `ProviderAutofillError` carrying the configured model and already-captured tokens. The extractor preserves that typed error unchanged. Regression tests simulate `onUsage` followed by rejection and verify the router persists one `provider_error` row with the captured tokens and $1.75 / 1M+1M estimated cost. Focused verification now passes 29 tests.

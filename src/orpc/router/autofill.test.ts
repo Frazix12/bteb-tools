@@ -8,6 +8,7 @@ import {
 	NoMeaningfulAutofillFieldsError,
 	ProviderAutofillError,
 } from "#/features/autofill/extract";
+import { createAiUsageRepository } from "#/features/autofill/usage-repository";
 import { createAutofillRouter } from "./autofill";
 
 describe("autofill procedures", () => {
@@ -186,5 +187,39 @@ describe("autofill procedures", () => {
 		expect(event).toMatchObject({ ownerId: "owner-1", outcome, ...usage });
 		for (const key of ["text", "prompt", "patch"])
 			expect(event).not.toHaveProperty(key);
+	});
+
+	test("persists captured provider-error tokens and estimated cost once", async () => {
+		getSessionMock.mockResolvedValue({ user: { id: "owner-1" }, session: {} });
+		const insert = vi.fn().mockResolvedValue(undefined);
+		const usage = {
+			provider: "google",
+			model: "gemini-3.1-flash-lite",
+			inputTokens: 1_000_000,
+			outputTokens: 1_000_000,
+		};
+		const client = createRouterClient(
+			createAutofillRouter({
+				consumeQuota: vi
+					.fn()
+					.mockResolvedValue({ allowed: true, remaining: 9, retryAt: null }),
+				extract: vi.fn().mockRejectedValue(new ProviderAutofillError(usage)),
+				usageRepository: createAiUsageRepository(insert),
+			}),
+			{ context: { headers: new Headers() } },
+		);
+		await client
+			.extract({ type: "cover_page", text: "private source text" })
+			.catch(() => undefined);
+
+		expect(insert).toHaveBeenCalledTimes(1);
+		expect(insert).toHaveBeenCalledWith(
+			expect.objectContaining({
+				outcome: "provider_error",
+				inputTokens: 1_000_000n,
+				outputTokens: 1_000_000n,
+				costMicros: 1_750_000n,
+			}),
+		);
 	});
 });

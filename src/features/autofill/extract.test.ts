@@ -2,6 +2,7 @@ import { describe, expect, test, vi } from "vitest";
 import { z } from "zod";
 
 import {
+	captureGeminiGeneration,
 	createAutofillExtractor,
 	IndexAutofillProviderSchema,
 	NoMeaningfulAutofillFieldsError,
@@ -9,6 +10,27 @@ import {
 } from "./extract";
 
 describe("autofill extraction", () => {
+	test("preserves captured usage when Gemini rejects after reporting tokens", async () => {
+		const run = vi.fn(async ({ middleware }) => {
+			middleware[0].onUsage({}, { promptTokens: 123, completionTokens: 45 });
+			throw new Error("private upstream response");
+		});
+		const generate = () =>
+			captureGeminiGeneration("gemini-3.1-flash-lite", run);
+		const extract = createAutofillExtractor(generate);
+
+		await expect(
+			extract("cover_page", "A sufficiently long private source"),
+		).rejects.toMatchObject({
+			usage: {
+				provider: "google",
+				model: "gemini-3.1-flash-lite",
+				inputTokens: 123,
+				outputTokens: 45,
+			},
+			message: "AI extraction is temporarily unavailable.",
+		});
+	});
 	test("uses a Gemini-compatible JSON response schema", () => {
 		const serialized = JSON.stringify(
 			z.toJSONSchema(IndexAutofillProviderSchema),

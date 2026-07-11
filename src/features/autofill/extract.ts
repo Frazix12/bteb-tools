@@ -175,24 +175,26 @@ function countLeaves(value: unknown): number {
 	return value === undefined || value === null || value === "" ? 0 : 1;
 }
 
-const geminiGenerate: AutofillGenerator = async ({ prompt, schema }) => {
-	const { env } = await import("#/env");
-	if (!env.GEMINI_API_KEY) throw new ProviderAutofillError();
-	const adapter = createGeminiChat(
-		env.GEMINI_MODEL as GeminiTextModel,
-		env.GEMINI_API_KEY,
-	);
+type UsageCaptureOptions = {
+	middleware: Array<{
+		onUsage: (
+			context: unknown,
+			info: { promptTokens: number; completionTokens: number },
+		) => void;
+	}>;
+};
+
+export async function captureGeminiGeneration(
+	model: string,
+	run: (options: UsageCaptureOptions) => Promise<unknown>,
+): Promise<AutofillGeneration> {
 	let tokens = {
 		inputTokens: null as number | null,
 		outputTokens: null as number | null,
 	};
-	const value = await chat({
-		adapter,
-		messages: [{ role: "user", content: prompt }],
-		outputSchema: schema,
+	const options: UsageCaptureOptions = {
 		middleware: [
 			{
-				name: "capture-usage",
 				onUsage: (_context, info) => {
 					tokens = {
 						inputTokens: info.promptTokens,
@@ -201,11 +203,36 @@ const geminiGenerate: AutofillGenerator = async ({ prompt, schema }) => {
 				},
 			},
 		],
-	});
-	return {
-		value,
-		usage: { provider: "google", model: env.GEMINI_MODEL, ...tokens },
 	};
+	try {
+		const value = await run(options);
+		return {
+			value,
+			usage: { provider: "google", model, ...tokens },
+		};
+	} catch {
+		throw new ProviderAutofillError({ provider: "google", model, ...tokens });
+	}
+}
+
+const geminiGenerate: AutofillGenerator = async ({ prompt, schema }) => {
+	const { env } = await import("#/env");
+	if (!env.GEMINI_API_KEY) throw new ProviderAutofillError();
+	const adapter = createGeminiChat(
+		env.GEMINI_MODEL as GeminiTextModel,
+		env.GEMINI_API_KEY,
+	);
+	return captureGeminiGeneration(env.GEMINI_MODEL, ({ middleware }) =>
+		chat({
+			adapter,
+			messages: [{ role: "user", content: prompt }],
+			outputSchema: schema,
+			middleware: middleware.map((item) => ({
+				name: "capture-usage",
+				onUsage: item.onUsage,
+			})),
+		}),
+	);
 };
 
 export function createAutofillExtractor(
