@@ -26,6 +26,20 @@ type Props = {
 	pending: boolean;
 	message: Message;
 };
+function FieldError({
+	field,
+	message,
+}: {
+	field: keyof Draft;
+	message: Message;
+}) {
+	const value = message?.fields?.[field];
+	return value ? (
+		<p id={`preset-${field}-error`} role="alert">
+			{value}
+		</p>
+	) : null;
+}
 type Draft = {
 	slug: string;
 	title: string;
@@ -128,44 +142,75 @@ export function PresetsPanel({
 						id="preset-slug"
 						value={form.slug}
 						aria-invalid={Boolean(message?.fields?.slug)}
+						aria-describedby={
+							message?.fields?.slug ? "preset-slug-error" : undefined
+						}
 						onChange={(e) => set("slug", e.target.value)}
 					/>
-					{message?.fields?.slug && <p role="alert">{message.fields.slug}</p>}
+					<FieldError field="slug" message={message} />
 					<Label htmlFor="preset-title">Title</Label>
 					<Input
 						id="preset-title"
 						value={form.title}
+						aria-invalid={Boolean(message?.fields?.title)}
+						aria-describedby={
+							message?.fields?.title ? "preset-title-error" : undefined
+						}
 						onChange={(e) => set("title", e.target.value)}
 					/>
+					<FieldError field="title" message={message} />
 					<Label htmlFor="preset-description">Description</Label>
 					<Input
 						id="preset-description"
 						value={form.description}
+						aria-invalid={Boolean(message?.fields?.description)}
+						aria-describedby={
+							message?.fields?.description
+								? "preset-description-error"
+								: undefined
+						}
 						onChange={(e) => set("description", e.target.value)}
 					/>
+					<FieldError field="description" message={message} />
 					<Label htmlFor="preset-type">Type</Label>
 					<select
 						id="preset-type"
 						value={form.type}
+						aria-invalid={Boolean(message?.fields?.type)}
+						aria-describedby={
+							message?.fields?.type ? "preset-type-error" : undefined
+						}
 						onChange={(e) => set("type", e.target.value as PresetInput["type"])}
 					>
 						<option value="cover_page">Cover page</option>
 						<option value="index_sheet">Index sheet</option>
 					</select>
-					<label>
+					<FieldError field="type" message={message} />
+					<label htmlFor="preset-enabled">
 						<input
+							id="preset-enabled"
 							type="checkbox"
 							checked={form.enabled}
+							aria-invalid={Boolean(message?.fields?.enabled)}
+							aria-describedby={
+								message?.fields?.enabled ? "preset-enabled-error" : undefined
+							}
 							onChange={(e) => set("enabled", e.target.checked)}
 						/>
 						Enabled
 					</label>
+					<FieldError field="enabled" message={message} />
 					<Label htmlFor="preset-json">Preset data (JSON)</Label>
 					<Textarea
 						id="preset-json"
 						value={json}
+						aria-invalid={Boolean(message?.fields?.data) || Boolean(error)}
+						aria-describedby={
+							message?.fields?.data ? "preset-data-error" : undefined
+						}
 						onChange={(e) => setJson(e.target.value)}
 					/>
+					<FieldError field="data" message={message} />
 					{error && <p role="alert">{error}</p>}
 					<Button disabled={pending} onClick={save}>
 						{editId ? "Update preset" : "Save preset"}

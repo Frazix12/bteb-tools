@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, test, vi } from "vitest";
+import { BOOTSTRAP_ADMIN_EMAIL_DEFAULT } from "#/config/bootstrap-admin";
 import { AdminDashboardView } from "./admin-dashboard";
 
 const props = {
@@ -9,7 +10,7 @@ const props = {
 			{
 				id: "bootstrap",
 				name: "Owner",
-				email: "root@example.com",
+				email: BOOTSTRAP_ADMIN_EMAIL_DEFAULT,
 				role: "admin" as const,
 				documentCount: 2,
 			},
@@ -71,7 +72,7 @@ const props = {
 	onSavePreset: vi.fn(),
 	onTogglePreset: vi.fn(),
 	onDeletePreset: vi.fn(),
-	bootstrapEmail: "root@example.com",
+	bootstrapEmail: BOOTSTRAP_ADMIN_EMAIL_DEFAULT,
 	pending: false,
 	message: null,
 };
@@ -97,7 +98,7 @@ describe("admin dashboard", () => {
 		expect(
 			(
 				screen.getByRole("button", {
-					name: "Change role for root@example.com",
+					name: `Change role for ${BOOTSTRAP_ADMIN_EMAIL_DEFAULT}`,
 				}) as HTMLButtonElement
 			).disabled,
 		).toBe(true);
@@ -158,14 +159,14 @@ describe("admin dashboard", () => {
 		).toBe(true);
 	});
 
-	test("loads all preset fields for editing and exposes server field errors", () => {
+	test("loads all preset fields for editing and exposes non-slug server field errors", () => {
 		render(
 			<AdminDashboardView
 				{...props}
 				message={{
 					error: true,
 					text: "Invalid preset",
-					fields: { slug: "Slug already exists" },
+					fields: { title: "Title is too long" },
 				}}
 			/>,
 		);
@@ -177,6 +178,62 @@ describe("admin dashboard", () => {
 			"Lab preset",
 		);
 		expect(screen.getByRole("button", { name: "Update preset" })).toBeTruthy();
-		expect(screen.getByText("Slug already exists")).toBeTruthy();
+		expect(screen.getByText("Title is too long")).toBeTruthy();
+		expect(
+			screen.getByLabelText("Title").getAttribute("aria-describedby"),
+		).toBe("preset-title-error");
+	});
+
+	test.each([
+		{ edit: false },
+		{ edit: true },
+	])("submits every bound preset field for $edit", ({ edit }) => {
+		const onSavePreset = vi.fn();
+		render(<AdminDashboardView {...props} onSavePreset={onSavePreset} />);
+		fireEvent.click(
+			screen.getByRole("button", {
+				name: edit ? "Edit Lab preset" : "New preset",
+			}),
+		);
+		fireEvent.change(screen.getByLabelText("Slug"), {
+			target: { value: "changed-slug" },
+		});
+		fireEvent.change(screen.getByLabelText("Title"), {
+			target: { value: "Changed title" },
+		});
+		fireEvent.change(screen.getByLabelText("Description"), {
+			target: { value: "Changed description" },
+		});
+		fireEvent.change(screen.getByLabelText("Type"), {
+			target: { value: "index_sheet" },
+		});
+		fireEvent.click(screen.getByLabelText("Enabled"));
+		const data = {
+			schemaVersion: 1,
+			exportedAt: "2026-07-11T00:00:00.000Z",
+			title: "Index",
+			rowsPerPage: 10,
+			showPageNo: true,
+			entries: [],
+		};
+		fireEvent.change(screen.getByLabelText("Preset data (JSON)"), {
+			target: { value: JSON.stringify(data) },
+		});
+		fireEvent.click(
+			screen.getByRole("button", {
+				name: edit ? "Update preset" : "Save preset",
+			}),
+		);
+		expect(onSavePreset).toHaveBeenCalledWith(
+			{
+				slug: "changed-slug",
+				title: "Changed title",
+				description: "Changed description",
+				type: "index_sheet",
+				enabled: false,
+				data,
+			},
+			edit ? props.presets.items[0].id : undefined,
+		);
 	});
 });
