@@ -15,6 +15,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as AuthRouteImport } from './routes/_auth'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ApiSplatRouteImport } from './routes/api.$'
+import { Route as AuthPresetsRouteImport } from './routes/_auth/presets'
 import { Route as AuthDashboardRouteImport } from './routes/_auth/dashboard'
 import { Route as ApiRpcSplatRouteImport } from './routes/api.rpc.$'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
@@ -51,6 +52,11 @@ const ApiSplatRoute = ApiSplatRouteImport.update({
   id: '/api/$',
   path: '/api/$',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AuthPresetsRoute = AuthPresetsRouteImport.update({
+  id: '/presets',
+  path: '/presets',
+  getParentRoute: () => AuthRoute,
 } as any)
 const AuthDashboardRoute = AuthDashboardRouteImport.update({
   id: '/dashboard',
@@ -94,6 +100,7 @@ export interface FileRoutesByFullPath {
   '/signup': typeof SignupRoute
   '/visual-fixtures': typeof VisualFixturesRoute
   '/dashboard': typeof AuthDashboardRoute
+  '/presets': typeof AuthPresetsRoute
   '/api/$': typeof ApiSplatRoute
   '/cover-page/$id': typeof AuthCoverPageIdRoute
   '/cover-page/new': typeof AuthCoverPageNewRoute
@@ -108,6 +115,7 @@ export interface FileRoutesByTo {
   '/signup': typeof SignupRoute
   '/visual-fixtures': typeof VisualFixturesRoute
   '/dashboard': typeof AuthDashboardRoute
+  '/presets': typeof AuthPresetsRoute
   '/api/$': typeof ApiSplatRoute
   '/cover-page/$id': typeof AuthCoverPageIdRoute
   '/cover-page/new': typeof AuthCoverPageNewRoute
@@ -124,6 +132,7 @@ export interface FileRoutesById {
   '/signup': typeof SignupRoute
   '/visual-fixtures': typeof VisualFixturesRoute
   '/_auth/dashboard': typeof AuthDashboardRoute
+  '/_auth/presets': typeof AuthPresetsRoute
   '/api/$': typeof ApiSplatRoute
   '/_auth/cover-page/$id': typeof AuthCoverPageIdRoute
   '/_auth/cover-page/new': typeof AuthCoverPageNewRoute
@@ -140,6 +149,7 @@ export interface FileRouteTypes {
     | '/signup'
     | '/visual-fixtures'
     | '/dashboard'
+    | '/presets'
     | '/api/$'
     | '/cover-page/$id'
     | '/cover-page/new'
@@ -154,6 +164,7 @@ export interface FileRouteTypes {
     | '/signup'
     | '/visual-fixtures'
     | '/dashboard'
+    | '/presets'
     | '/api/$'
     | '/cover-page/$id'
     | '/cover-page/new'
@@ -169,6 +180,7 @@ export interface FileRouteTypes {
     | '/signup'
     | '/visual-fixtures'
     | '/_auth/dashboard'
+    | '/_auth/presets'
     | '/api/$'
     | '/_auth/cover-page/$id'
     | '/_auth/cover-page/new'
@@ -233,6 +245,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_auth/presets': {
+      id: '/_auth/presets'
+      path: '/presets'
+      fullPath: '/presets'
+      preLoaderRoute: typeof AuthPresetsRouteImport
+      parentRoute: typeof AuthRoute
+    }
     '/_auth/dashboard': {
       id: '/_auth/dashboard'
       path: '/dashboard'
@@ -287,6 +306,7 @@ declare module '@tanstack/react-router' {
 
 interface AuthRouteChildren {
   AuthDashboardRoute: typeof AuthDashboardRoute
+  AuthPresetsRoute: typeof AuthPresetsRoute
   AuthCoverPageIdRoute: typeof AuthCoverPageIdRoute
   AuthCoverPageNewRoute: typeof AuthCoverPageNewRoute
   AuthIndexSheetIdRoute: typeof AuthIndexSheetIdRoute
@@ -295,6 +315,7 @@ interface AuthRouteChildren {
 
 const AuthRouteChildren: AuthRouteChildren = {
   AuthDashboardRoute: AuthDashboardRoute,
+  AuthPresetsRoute: AuthPresetsRoute,
   AuthCoverPageIdRoute: AuthCoverPageIdRoute,
   AuthCoverPageNewRoute: AuthCoverPageNewRoute,
   AuthIndexSheetIdRoute: AuthIndexSheetIdRoute,

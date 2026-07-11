@@ -30,6 +30,9 @@ function NewDocumentActions() {
 			<Button asChild variant="outline">
 				<a href="/cover-page/new">New Cover Page</a>
 			</Button>
+			<Button asChild variant="outline">
+				<a href="/presets">Browse Presets</a>
+			</Button>
 		</div>
 	);
 }
