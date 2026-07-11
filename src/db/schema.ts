@@ -178,6 +178,7 @@ export const aiProviderKey = pgTable(
 		cooldownUntil: timestamp("cooldown_until", { withTimezone: true }),
 		lastValidatedAt: timestamp("last_validated_at", { withTimezone: true }),
 		lastUsedAt: timestamp("last_used_at", { withTimezone: true }),
+		lastSuccessAt: timestamp("last_success_at", { withTimezone: true }),
 		lastFailureAt: timestamp("last_failure_at", { withTimezone: true }),
 		lastFailureCode: text("last_failure_code"),
 		lastFailureMessage: text("last_failure_message"),

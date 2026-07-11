@@ -36,6 +36,7 @@ describe("AI provider key schema", () => {
 			maskedSuffix: expect.any(Object),
 			validationStatus: expect.any(Object),
 			cooldownUntil: expect.any(Object),
+			lastSuccessAt: expect.any(Object),
 			createdBy: expect.any(Object),
 			updatedBy: expect.any(Object),
 			createdAt: expect.any(Object),

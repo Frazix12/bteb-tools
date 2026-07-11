@@ -2,7 +2,8 @@ import { and, asc, eq, isNull, lte, ne, or, sql } from "drizzle-orm";
 
 import { db } from "#/db";
 import { aiKeyRotationState, aiProviderKey } from "#/db/schema";
-import type { KeyCipher } from "#/features/ai-keys/crypto";
+import { env } from "#/env";
+import { createKeyCipher, type KeyCipher } from "#/features/ai-keys/crypto";
 import type {
 	AiKeyRepository,
 	AiKeyWrite,
@@ -42,17 +43,15 @@ const publicSelection = {
 	cooldownUntil: aiProviderKey.cooldownUntil,
 	lastCheckedAt: aiProviderKey.lastValidatedAt,
 	lastUsedAt: aiProviderKey.lastUsedAt,
+	lastSuccessAt: aiProviderKey.lastSuccessAt,
 	lastFailureAt: aiProviderKey.lastFailureAt,
 	failureCode: aiProviderKey.lastFailureCode,
 	failureMessage: aiProviderKey.lastFailureMessage,
 };
 
 const toPublic = (row: Record<string, unknown>): PublicAiKey => ({
-	...(row as Omit<PublicAiKey, "provider" | "lastSuccessAt">),
+	...(row as Omit<PublicAiKey, "provider">),
 	provider,
-	// The current committed schema has no success timestamp; keep the public API
-	// secret-safe and stable until that optional metric is persisted.
-	lastSuccessAt: null,
 });
 
 export function createDrizzleAiKeyRepository(
@@ -204,6 +203,7 @@ export function createDrizzleAiKeyRepository(
 					validationStatus: "valid",
 					cooldownUntil: null,
 					lastUsedAt: now,
+					lastSuccessAt: now,
 					lastValidatedAt: now,
 					lastFailureAt: null,
 					lastFailureCode: null,
@@ -235,5 +235,7 @@ export function createDrizzleAiKeyRepository(
 
 export const drizzleAiKeyRepository = createDrizzleAiKeyRepository(
 	db,
-	undefined,
+	env.AI_KEY_ENCRYPTION_SECRET
+		? createKeyCipher(env.AI_KEY_ENCRYPTION_SECRET)
+		: undefined,
 );
