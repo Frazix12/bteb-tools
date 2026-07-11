@@ -2,6 +2,25 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, test, vi } from "vitest";
 
+vi.mock("@tanstack/react-router", () => ({
+	Link: ({
+		children,
+		search,
+		to,
+	}: {
+		children: React.ReactNode;
+		search: { redirect: string };
+		to: string;
+	}) => (
+		<a
+			href={`${to}?redirect=${encodeURIComponent(search.redirect)}`}
+			onClick={(event) => event.preventDefault()}
+		>
+			{children}
+		</a>
+	),
+}));
+
 import { createBlankCoverPage } from "#/features/cover-page/defaults";
 import { createBlankIndexSheet } from "#/features/index-sheet/defaults";
 import { AutofillDialog } from "./autofill-dialog";
@@ -10,6 +29,23 @@ import type { AutofillResult } from "./extract";
 afterEach(cleanup);
 
 describe("autofill dialog", () => {
+	test("offers sign-in instead of opening AI for a guest", () => {
+		const onExtract = vi.fn();
+		render(
+			<AutofillDialog
+				type="cover_page"
+				current={createBlankCoverPage()}
+				canUseAi={false}
+				signInRedirect="/cover-page/new"
+				onExtract={onExtract}
+				onApply={vi.fn()}
+			/>,
+		);
+		fireEvent.click(screen.getByRole("link", { name: "Sign in to use AI" }));
+		expect(screen.queryByRole("dialog")).toBeNull();
+		expect(onExtract).not.toHaveBeenCalled();
+	});
+
 	test.each([
 		"index_sheet",
 		"cover_page",
