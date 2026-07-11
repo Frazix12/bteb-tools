@@ -23,3 +23,13 @@ Implemented admin-only repository and oRPC management surfaces for users, usage,
 - Repository returns selected DTO fields and never raw document payloads from the document listing.
 - Role changes and destructive deletes use transactions.
 - Existing unrelated report-file changes were left untouched.
+
+## Review follow-up evidence
+
+- Corrected role transitions to load the target email inside the mutation transaction and call the shared `canChangeRole` helper. A normalized bootstrap email cannot self-demote; an ordinary admin can.
+- Expanded router coverage across all 11 procedures for both anonymous and ordinary-user denial, plus successful DTO/aggregate delegation, pagination, all mutations, actor attribution, repository error mapping, and typed payload rejection.
+- Added Drizzle repository contract tests for transactional target selection/role update and usage total/provider/model aggregate queries.
+- `pnpm vitest run src/features/admin src/orpc/router/admin.test.ts`: 3 files passed, 10 tests passed.
+- `pnpm check`: 132 files checked, no fixes required.
+- `pnpm exec tsc --noEmit`: exit 0.
+- `git diff --check`: exit 0.
