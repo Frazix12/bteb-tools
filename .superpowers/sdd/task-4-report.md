@@ -1,52 +1,28 @@
-# Task 4 Report
+# Task 4 report
 
-## Outcome
+## Implemented
 
-- Added a stress variant of the development index fixture with a long mixed-script caret-math name.
-- Added Chromium containment, viewport-height, superscript, and row-overflow assertions at 390x844, 844x390, 1024x768, and 1440x900.
-- Corrected the screen preview grid/flex shrink integration with `min-width: 0` and a host-width wrapper; print rules and the 11px font floor are unchanged.
-- Kept existing print snapshots unchanged.
-- Added the missing `ResizeObserver.unobserve` method to the Task 2 test double so the required TypeScript verification can complete.
+- Added `PresetSummary`, `PresetRecord`, and `PresetRepository` with enabled-only Drizzle queries and conflict-safe slug upserts.
+- Moved all three existing preset payloads, including the full ISTT logo data URL, into `seed-data.ts` without changing their values.
+- Added idempotent `seedPresets(repository)` and retained compatibility exports from `presets.ts` for current consumers.
+- Added authenticated `presets.list` and `presets.getEnabled`; the latter validates input, maps unavailable presets to `NOT_FOUND`, and parses stored JSON with the matching document schema.
+- Registered the preset router in the root oRPC router.
 
 ## TDD evidence
 
-- RED: `bun run test:visual` — 6 failed, 2 passed. All four new viewport assertions exposed unscaled intrinsic A4 overflow; the intentional fixture change also demonstrated why the stress content must remain isolated from the static print-parity fixture.
-- Focused GREEN: `bun x playwright test tests/visual/print-layout.spec.ts --grep 'fits'` — 4 passed.
-- Final visual GREEN: `bun run test:visual` — 8 passed.
-
-## Full verification
-
-Command:
-
-`bun run test && bun run test:visual && bun run check && bun x tsc --noEmit && bun run build`
-
-Results:
-
-- Vitest: 23 files passed, 107 tests passed.
-- Playwright Chromium: 8 tests passed.
-- Biome: 105 files checked, no fixes required.
-- TypeScript: passed with no diagnostics.
-- Vite/Nitro production build: passed.
+- Initial focused run failed because the repository, seed, and router modules did not exist.
+- Focused verification: `pnpm vitest run src/features/presets src/orpc/router/presets.test.ts` — 4 files, 10 tests passed.
+- Type verification: `pnpm exec tsc --noEmit` — passed.
+- Formatting/lint verification: targeted `pnpm exec biome check --write ...` — passed after formatting.
+- `git diff --check` — passed.
 
 ## Self-review
 
-- Scope is limited to the stress fixture, browser regression, screen-only sizing integration, and the test-double typing correction required by the release gate.
-- Assertions wait for observer-driven scaling under parallel browser load and then inspect every page/name cell.
-- No native A4 dimensions, print CSS geometry, minimum auto-fit font size, or snapshots changed.
-- Concerns: none.
+- Repository list projections omit the large JSON payload.
+- Enabled, slug, and type predicates are applied in the database query.
+- Seed upserts update stable fields and cannot duplicate slugs.
+- Unrelated existing edits in Task 2 and Task 3 reports were not staged.
 
-## Review fixes
+## Concerns
 
-- Changed overflow checks from the clipping `.idx-cell.name` parent to every inner `.auto-fit-experiment-name`, with polling for `ResizeObserver` completion.
-- Included preview-host padding in horizontal and vertical content bounds and asserted each frame's actual top/bottom against its viewport-height budget.
-- Scoped exponent checks to the first stressed name and asserted exactly five superscripts, each containing `2`.
-- Asserted every computed preview scale is within `(0, 1]` and every transformed `.a4-page` edge coincides with its `.page-frame` edge within 0.5px, detecting internal clipping.
-- Reserved the existing 4px scale gutter as short-landscape bottom padding so the transformed page remains inside the padded viewport budget; print CSS is unchanged.
-
-Review verification:
-
-- `bun x playwright test tests/visual/print-layout.spec.ts --grep 'fits'` — 4 passed.
-- `bun run test:visual` — 8 passed.
-- `bun run test src/features/preview/preview-css.test.ts` — 1 file passed, 4 tests passed.
-- `bun run check` — 105 files checked, no fixes required.
-- `bun x tsc --noEmit` — passed with exit code 0.
+- Database integration is exercised through repository contract tests and type checking; this task does not require a live PostgreSQL test database.
