@@ -159,13 +159,13 @@
           "name": "input_tokens",
           "type": "bigint",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
         },
         "output_tokens": {
           "name": "output_tokens",
           "type": "bigint",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
         },
         "cost_micros": {
           "name": "cost_micros",

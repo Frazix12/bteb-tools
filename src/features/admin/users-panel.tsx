@@ -31,6 +31,9 @@ export function UsersPanel({
 							<th>Email</th>
 							<th>Role</th>
 							<th>Documents</th>
+							<th>AI requests</th>
+							<th>Tokens (in/out)</th>
+							<th>Estimated cost</th>
 							<th>Action</th>
 						</tr>
 					</thead>
@@ -41,6 +44,11 @@ export function UsersPanel({
 								<td>{u.email}</td>
 								<td>{u.role}</td>
 								<td>{u.documentCount}</td>
+								<td>{u.aiRequests}</td>
+								<td>
+									{u.inputTokens ?? "Unknown"} / {u.outputTokens ?? "Unknown"}
+								</td>
+								<td>${(Number(u.costMicros || 0) / 1_000_000).toFixed(4)}</td>
 								<td>
 									{u.email.trim().toLowerCase() ===
 									bootstrapEmail.trim().toLowerCase() ? (

@@ -19,7 +19,5 @@ export function canChangeRole(input: {
 	targetId: string;
 	targetEmail: string;
 }): boolean {
-	return !(
-		input.actorId === input.targetId && isBootstrapAdminEmail(input.targetEmail)
-	);
+	return !isBootstrapAdminEmail(input.targetEmail);
 }

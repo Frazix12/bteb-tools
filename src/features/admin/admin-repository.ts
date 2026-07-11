@@ -1,4 +1,15 @@
-import { asc, count, desc, eq, sum } from "drizzle-orm";
+import {
+	and,
+	asc,
+	count,
+	desc,
+	eq,
+	gte,
+	inArray,
+	lte,
+	sql,
+	sum,
+} from "drizzle-orm";
 
 import { db } from "#/db";
 import { aiUsageEvent, documents, preset, user } from "#/db/schema";
@@ -16,6 +27,7 @@ export class InvalidRoleTransitionError extends Error {
 }
 
 export type PageInput = { page: number; pageSize: number };
+export type UsageInput = PageInput & { from?: Date; to?: Date };
 export type PresetWrite = {
 	slug: string;
 	title: string;
@@ -32,7 +44,7 @@ export interface AdminRepository {
 		targetId: string,
 		role: "user" | "admin",
 	): Promise<unknown>;
-	usageSummary(): Promise<unknown>;
+	usageSummary(input?: UsageInput): Promise<unknown>;
 	dataSummary(): Promise<unknown>;
 	listDocuments(input: PageInput): Promise<unknown>;
 	deleteDocument(id: string): Promise<void>;
@@ -89,17 +101,51 @@ export const drizzleAdminRepository: AdminRepository = {
 					email: user.email,
 					role: user.role,
 					createdAt: user.createdAt,
-					documentCount: count(documents.id),
 				})
 				.from(user)
-				.leftJoin(documents, eq(documents.ownerId, user.id))
-				.groupBy(user.id)
 				.orderBy(desc(user.createdAt))
 				.limit(input.pageSize)
 				.offset(offset(input)),
 			db.select({ value: count() }).from(user),
 		]);
-		return { items: rows, total, page: input.page, pageSize: input.pageSize };
+		const ids = rows.map((row) => row.id);
+		if (!ids.length)
+			return { items: [], total, page: input.page, pageSize: input.pageSize };
+		const [documentCounts, usage] = await Promise.all([
+			db
+				.select({ ownerId: documents.ownerId, value: count() })
+				.from(documents)
+				.where(inArray(documents.ownerId, ids))
+				.groupBy(documents.ownerId),
+			db
+				.select({
+					ownerId: aiUsageEvent.ownerId,
+					aiRequests: count(),
+					inputTokens: sum(aiUsageEvent.inputTokens),
+					outputTokens: sum(aiUsageEvent.outputTokens),
+					costMicros: sum(aiUsageEvent.costMicros),
+				})
+				.from(aiUsageEvent)
+				.where(inArray(aiUsageEvent.ownerId, ids))
+				.groupBy(aiUsageEvent.ownerId),
+		]);
+		const docsByOwner = new Map(
+			documentCounts.map((x) => [x.ownerId, x.value]),
+		);
+		const usageByOwner = new Map(usage.map((x) => [x.ownerId, x]));
+		return {
+			items: rows.map((row) => ({
+				...row,
+				documentCount: docsByOwner.get(row.id) ?? 0,
+				aiRequests: usageByOwner.get(row.id)?.aiRequests ?? 0,
+				inputTokens: usageByOwner.get(row.id)?.inputTokens ?? null,
+				outputTokens: usageByOwner.get(row.id)?.outputTokens ?? null,
+				costMicros: usageByOwner.get(row.id)?.costMicros ?? "0",
+			})),
+			total,
+			page: input.page,
+			pageSize: input.pageSize,
+		};
 	},
 	async setUserRole(actorId, targetId, role) {
 		return db.transaction(async (tx) => {
@@ -123,7 +169,12 @@ export const drizzleAdminRepository: AdminRepository = {
 			return row;
 		});
 	},
-	async usageSummary() {
+	async usageSummary(input = { page: 1, pageSize: 20 }) {
+		const conditions = [
+			input.from ? gte(aiUsageEvent.createdAt, input.from) : undefined,
+			input.to ? lte(aiUsageEvent.createdAt, input.to) : undefined,
+		].filter(Boolean);
+		const where = conditions.length ? and(...conditions) : undefined;
 		const totals = await db
 			.select({
 				events: count(),
@@ -131,7 +182,8 @@ export const drizzleAdminRepository: AdminRepository = {
 				outputTokens: sum(aiUsageEvent.outputTokens),
 				costMicros: sum(aiUsageEvent.costMicros),
 			})
-			.from(aiUsageEvent);
+			.from(aiUsageEvent)
+			.where(where);
 		const byModel = await db
 			.select({
 				provider: aiUsageEvent.provider,
@@ -142,20 +194,85 @@ export const drizzleAdminRepository: AdminRepository = {
 				costMicros: sum(aiUsageEvent.costMicros),
 			})
 			.from(aiUsageEvent)
+			.where(where)
 			.groupBy(aiUsageEvent.provider, aiUsageEvent.model)
 			.orderBy(asc(aiUsageEvent.provider), asc(aiUsageEvent.model));
-		return { totals: totals[0], byModel };
+		const day = sql<string>`date(${aiUsageEvent.createdAt})`;
+		const [byDate, byUser, byOutcome] = await Promise.all([
+			db
+				.select({
+					date: day,
+					events: count(),
+					costMicros: sum(aiUsageEvent.costMicros),
+				})
+				.from(aiUsageEvent)
+				.where(where)
+				.groupBy(day)
+				.orderBy(desc(day))
+				.limit(input.pageSize)
+				.offset(offset(input)),
+			db
+				.select({
+					ownerId: user.id,
+					name: user.name,
+					email: user.email,
+					events: count(),
+					inputTokens: sum(aiUsageEvent.inputTokens),
+					outputTokens: sum(aiUsageEvent.outputTokens),
+					costMicros: sum(aiUsageEvent.costMicros),
+				})
+				.from(aiUsageEvent)
+				.innerJoin(user, eq(user.id, aiUsageEvent.ownerId))
+				.where(where)
+				.groupBy(user.id)
+				.orderBy(desc(count()))
+				.limit(input.pageSize)
+				.offset(offset(input)),
+			db
+				.select({
+					outcome: aiUsageEvent.outcome,
+					events: count(),
+					costMicros: sum(aiUsageEvent.costMicros),
+				})
+				.from(aiUsageEvent)
+				.where(where)
+				.groupBy(aiUsageEvent.outcome)
+				.orderBy(asc(aiUsageEvent.outcome))
+				.limit(20),
+		]);
+		return {
+			totals: totals[0],
+			byModel,
+			byDate,
+			byUser,
+			byOutcome,
+			page: input.page,
+			pageSize: input.pageSize,
+		};
 	},
 	async dataSummary() {
-		const [[users], [docs], [presets]] = await Promise.all([
-			db.select({ count: count() }).from(user),
-			db.select({ count: count() }).from(documents),
-			db.select({ count: count() }).from(preset),
-		]);
+		const [[users], [docs], [presets], [enabled], [disabled], [requests]] =
+			await Promise.all([
+				db.select({ count: count() }).from(user),
+				db.select({ count: count() }).from(documents),
+				db.select({ count: count() }).from(preset),
+				db
+					.select({ count: count() })
+					.from(preset)
+					.where(eq(preset.enabled, true)),
+				db
+					.select({ count: count() })
+					.from(preset)
+					.where(eq(preset.enabled, false)),
+				db.select({ count: count() }).from(aiUsageEvent),
+			]);
 		return {
 			users: users.count,
 			documents: docs.count,
 			presets: presets.count,
+			enabledPresets: enabled.count,
+			disabledPresets: disabled.count,
+			aiRequests: requests.count,
 		};
 	},
 	async listDocuments(input) {
@@ -181,13 +298,11 @@ export const drizzleAdminRepository: AdminRepository = {
 		return { items, total, page: input.page, pageSize: input.pageSize };
 	},
 	async deleteDocument(id) {
-		await db.transaction(async (tx) => {
-			const rows = await tx
-				.delete(documents)
-				.where(eq(documents.id, id))
-				.returning({ id: documents.id });
-			if (!rows.length) throw new AdminTargetNotFoundError();
-		});
+		const rows = await db
+			.delete(documents)
+			.where(eq(documents.id, id))
+			.returning({ id: documents.id });
+		if (!rows.length) throw new AdminTargetNotFoundError();
 	},
 	async listPresets(input) {
 		const [items, [{ value: total }]] = await Promise.all([
@@ -249,12 +364,10 @@ export const drizzleAdminRepository: AdminRepository = {
 		return row;
 	},
 	async deletePreset(id) {
-		await db.transaction(async (tx) => {
-			const rows = await tx
-				.delete(preset)
-				.where(eq(preset.id, id))
-				.returning({ id: preset.id });
-			if (!rows.length) throw new AdminTargetNotFoundError();
-		});
+		const rows = await db
+			.delete(preset)
+			.where(eq(preset.id, id))
+			.returning({ id: preset.id });
+		if (!rows.length) throw new AdminTargetNotFoundError();
 	},
 };

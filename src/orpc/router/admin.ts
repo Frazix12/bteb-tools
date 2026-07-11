@@ -20,7 +20,15 @@ const page = z.object({
 });
 const id = z.object({ id: z.string().uuid() });
 const presetBase = z.object({
-	slug: z.string().trim().min(1),
+	slug: z
+		.string()
+		.trim()
+		.min(1)
+		.max(80)
+		.regex(
+			/^[a-z0-9]+(?:-[a-z0-9]+)*$/,
+			"Use lowercase letters, numbers, and single hyphens.",
+		),
 	title: z.string().trim().min(1),
 	description: z.string(),
 	enabled: z.boolean(),
@@ -75,8 +83,15 @@ export function createAdminRouter(repository: AdminRepository) {
 		},
 		usage: {
 			summary: adminProcedure
-				.input(z.object({}))
-				.handler(() => repository.usageSummary()),
+				.input(
+					z.object({
+						page: z.number().int().min(1).default(1),
+						pageSize: z.number().int().min(1).max(100).default(20),
+						from: z.coerce.date().optional(),
+						to: z.coerce.date().optional(),
+					}),
+				)
+				.handler(({ input }) => repository.usageSummary(input)),
 		},
 		data: {
 			summary: adminProcedure

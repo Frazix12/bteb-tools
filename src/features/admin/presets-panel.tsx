@@ -206,12 +206,20 @@ export function PresetsPanel({
 						value={json}
 						aria-invalid={Boolean(message?.fields?.data) || Boolean(error)}
 						aria-describedby={
-							message?.fields?.data ? "preset-data-error" : undefined
+							error
+								? "preset-json-error"
+								: message?.fields?.data
+									? "preset-data-error"
+									: undefined
 						}
 						onChange={(e) => setJson(e.target.value)}
 					/>
 					<FieldError field="data" message={message} />
-					{error && <p role="alert">{error}</p>}
+					{error && (
+						<p id="preset-json-error" role="alert">
+							{error}
+						</p>
+					)}
 					<Button disabled={pending} onClick={save}>
 						{editId ? "Update preset" : "Save preset"}
 					</Button>

@@ -13,6 +13,10 @@ const props = {
 				email: BOOTSTRAP_ADMIN_EMAIL_DEFAULT,
 				role: "admin" as const,
 				documentCount: 2,
+				aiRequests: 3,
+				inputTokens: 100,
+				outputTokens: 50,
+				costMicros: 12500,
 			},
 			{
 				id: "user",
@@ -20,6 +24,10 @@ const props = {
 				email: "user@example.com",
 				role: "user" as const,
 				documentCount: 0,
+				aiRequests: 0,
+				inputTokens: null,
+				outputTokens: null,
+				costMicros: 0,
 			},
 		],
 		total: 21,
@@ -34,8 +42,26 @@ const props = {
 			costMicros: 12500,
 		},
 		byModel: [],
+		byDate: [{ date: "2026-07-11", events: 3, costMicros: 12500 }],
+		byUser: [
+			{
+				ownerId: "bootstrap",
+				name: "Owner",
+				email: BOOTSTRAP_ADMIN_EMAIL_DEFAULT,
+				events: 3,
+				costMicros: 12500,
+			},
+		],
+		byOutcome: [{ outcome: "success", events: 3, costMicros: 12500 }],
 	},
-	summary: { users: 21, documents: 2, presets: 1 },
+	summary: {
+		users: 21,
+		documents: 2,
+		presets: 1,
+		enabledPresets: 1,
+		disabledPresets: 0,
+		aiRequests: 3,
+	},
 	documents: {
 		items: [
 			{
@@ -83,8 +109,8 @@ describe("admin dashboard", () => {
 		render(<AdminDashboardView {...props} />);
 		for (const name of ["Users", "AI Usage", "Data", "Presets"])
 			expect(screen.getByRole("heading", { name })).toBeTruthy();
-		expect(screen.getByText("Estimated cost")).toBeTruthy();
-		expect(screen.getByText("$0.0125")).toBeTruthy();
+		expect(screen.getAllByText("Estimated cost").length).toBeGreaterThan(0);
+		expect(screen.getAllByText("$0.0125").length).toBeGreaterThan(0);
 		expect(
 			screen.getAllByRole("button", { name: "Next page" }).length,
 		).toBeGreaterThan(0);

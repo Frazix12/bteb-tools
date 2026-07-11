@@ -12,6 +12,10 @@ export type AdminUser = {
 	email: string;
 	role: "user" | "admin";
 	documentCount: number;
+	aiRequests: number;
+	inputTokens: number | string | null;
+	outputTokens: number | string | null;
+	costMicros: number | string | null;
 };
 export type AdminDocument = {
 	id: string;
@@ -46,8 +50,32 @@ export type Usage = {
 		costMicros: number | string | null;
 	};
 	byModel: unknown[];
+	byDate: {
+		date: string;
+		events: number | string;
+		costMicros: number | string | null;
+	}[];
+	byUser: {
+		ownerId: string;
+		name: string;
+		email: string;
+		events: number | string;
+		costMicros: number | string | null;
+	}[];
+	byOutcome: {
+		outcome: string;
+		events: number | string;
+		costMicros: number | string | null;
+	}[];
 };
-export type Summary = { users: number; documents: number; presets: number };
+export type Summary = {
+	users: number;
+	documents: number;
+	presets: number;
+	enabledPresets: number;
+	disabledPresets: number;
+	aiRequests: number;
+};
 export type Message = {
 	error?: boolean;
 	text: string;

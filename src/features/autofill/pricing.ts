@@ -7,7 +7,7 @@ export interface AiGenerationUsage {
 
 export const PRICING_VERSION = "2026-07-11";
 
-// Standard paid-tier text rates, USD micros per 1M tokens. Verified 2026-07-11:
+// Standard paid-tier text rates, USD micros per 1M tokens. Re-verified 2026-07-11:
 // https://ai.google.dev/gemini-api/docs/pricing
 const MODEL_RATES = {
 	"gemini-3.1-flash-lite": { input: 250_000n, output: 1_500_000n },

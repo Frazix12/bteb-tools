@@ -21,6 +21,10 @@ export function DataPanel({ summary, data, onDelete, onPage, pending }: Props) {
 				{summary.users} users · {summary.documents} documents ·{" "}
 				{summary.presets} presets
 			</p>
+			<p>
+				{summary.enabledPresets} enabled presets · {summary.disabledPresets}{" "}
+				disabled presets · {summary.aiRequests} AI requests
+			</p>
 			<div className="overflow-x-auto">
 				<table className="w-full text-sm">
 					<thead>

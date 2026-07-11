@@ -21,4 +21,24 @@ describe("AI usage repository", () => {
 			expect(row).not.toHaveProperty(privateKey);
 		}
 	});
+
+	test("preserves unknown token metadata as null", async () => {
+		const insert = vi.fn().mockResolvedValue(undefined);
+		await createAiUsageRepository(insert).record({
+			ownerId: "owner-1",
+			provider: "google",
+			model: "gemini-3.1-flash-lite",
+			inputTokens: null,
+			outputTokens: null,
+			outcome: "provider_error",
+			createdAt: new Date(),
+		});
+		expect(insert).toHaveBeenCalledWith(
+			expect.objectContaining({
+				inputTokens: null,
+				outputTokens: null,
+				costMicros: 0n,
+			}),
+		);
+	});
 });

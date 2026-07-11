@@ -23,10 +23,17 @@ describe("admin authorization", () => {
 		expect(isBootstrapAdminEmail("someone@example.com")).toBe(false);
 	});
 
-	test("prevents changing the bootstrap admin's own role", () => {
+	test("prevents every actor from changing the bootstrap admin's role", () => {
 		expect(
 			canChangeRole({
 				actorId: "a",
+				targetId: "a",
+				targetEmail: bootstrapAdminEmail,
+			}),
+		).toBe(false);
+		expect(
+			canChangeRole({
+				actorId: "other-admin",
 				targetId: "a",
 				targetEmail: bootstrapAdminEmail,
 			}),

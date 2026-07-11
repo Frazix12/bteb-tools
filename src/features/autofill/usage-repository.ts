@@ -16,8 +16,8 @@ export interface AiUsageRepository {
 }
 
 type UsageRow = Omit<AiUsageEvent, "inputTokens" | "outputTokens"> & {
-	inputTokens: bigint;
-	outputTokens: bigint;
+	inputTokens: bigint | null;
+	outputTokens: bigint | null;
 	costMicros: bigint;
 	pricingVersion: string;
 };
@@ -32,8 +32,10 @@ export function createAiUsageRepository(
 				ownerId: event.ownerId,
 				provider: event.provider,
 				model: event.model,
-				inputTokens: BigInt(event.inputTokens ?? 0),
-				outputTokens: BigInt(event.outputTokens ?? 0),
+				inputTokens:
+					event.inputTokens == null ? null : BigInt(event.inputTokens),
+				outputTokens:
+					event.outputTokens == null ? null : BigInt(event.outputTokens),
 				outcome: event.outcome,
 				createdAt: event.createdAt,
 				...pricing,
