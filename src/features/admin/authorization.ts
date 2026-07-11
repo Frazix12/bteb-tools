@@ -1,9 +1,8 @@
 import { ORPCError } from "@orpc/server";
 
-type RoleHolder = { role?: string | null };
+import { getBootstrapAdminEmail } from "#/config/bootstrap-admin";
 
-const bootstrapAdminEmail =
-	process.env.BOOTSTRAP_ADMIN_EMAIL ?? "frazixgaming22@gmail.com";
+type RoleHolder = { role?: string | null };
 
 export function assertAdminUser(user: RoleHolder): void {
 	if (user.role !== "admin") {
@@ -12,9 +11,7 @@ export function assertAdminUser(user: RoleHolder): void {
 }
 
 export function isBootstrapAdminEmail(email: string): boolean {
-	return (
-		email.trim().toLowerCase() === bootstrapAdminEmail.trim().toLowerCase()
-	);
+	return email.trim().toLowerCase() === getBootstrapAdminEmail();
 }
 
 export function canChangeRole(input: {

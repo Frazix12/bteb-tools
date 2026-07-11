@@ -1,13 +1,14 @@
 import { describe, expect, test } from "vitest";
 
+import { getBootstrapAdminEmail } from "#/config/bootstrap-admin";
+
 import {
 	assertAdminUser,
 	canChangeRole,
 	isBootstrapAdminEmail,
 } from "./authorization";
 
-const bootstrapAdminEmail =
-	process.env.BOOTSTRAP_ADMIN_EMAIL ?? "frazixgaming22@gmail.com";
+const bootstrapAdminEmail = getBootstrapAdminEmail();
 
 describe("admin authorization", () => {
 	test("denies ordinary users and accepts admins", () => {

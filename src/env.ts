@@ -1,6 +1,8 @@
 import { createEnv } from "@t3-oss/env-core";
 import { z } from "zod";
 
+import { BOOTSTRAP_ADMIN_EMAIL_DEFAULT } from "#/config/bootstrap-admin";
+
 export const env = createEnv({
 	server: {
 		DATABASE_URL: z.string().min(1),
@@ -11,7 +13,7 @@ export const env = createEnv({
 		BOOTSTRAP_ADMIN_EMAIL: z
 			.string()
 			.email()
-			.default("frazixgaming22@gmail.com"),
+			.default(BOOTSTRAP_ADMIN_EMAIL_DEFAULT),
 		SERVER_URL: z.string().url().optional(),
 		GEMINI_API_KEY: z.string().min(1).optional(),
 		GEMINI_MODEL: z
