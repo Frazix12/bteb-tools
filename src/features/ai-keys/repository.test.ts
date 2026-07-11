@@ -1,3 +1,5 @@
+import type { SQL } from "drizzle-orm";
+import { PgDialect } from "drizzle-orm/pg-core";
 import { describe, expect, test, vi } from "vitest";
 
 vi.mock("#/db", () => ({ db: {} }));
@@ -22,21 +24,32 @@ function rotationDatabase(
 	let cursor = 0n;
 	let release = Promise.resolve();
 	const starts: bigint[] = [];
+	const lockSql: string[] = [];
+	const predicates: SQL[] = [];
 	const transaction = async (callback: (tx: unknown) => Promise<unknown>) => {
-		const previous = release;
 		let unlock!: () => void;
-		release = new Promise<void>((resolve) => {
-			unlock = resolve;
-		});
-		await previous;
-		starts.push(cursor);
 		const tx = {
 			insert: () => ({
 				values: () => ({ onConflictDoNothing: async () => {} }),
 			}),
-			execute: async () => ({ rows: [{ cursor }] }),
+			execute: async (query: SQL) => {
+				const previous = release;
+				release = new Promise<void>((resolve) => {
+					unlock = resolve;
+				});
+				await previous;
+				const compiled = new PgDialect().sqlToQuery(query.getSQL());
+				lockSql.push(compiled.sql);
+				starts.push(cursor);
+				return { rows: [{ cursor }] };
+			},
 			select: () => ({
-				from: () => ({ where: () => ({ orderBy: async () => rows }) }),
+				from: () => ({
+					where: (predicate: SQL) => {
+						predicates.push(predicate);
+						return { orderBy: async () => rows };
+					},
+				}),
 			}),
 			update: () => ({
 				set: (value: { cursor: bigint }) => ({
@@ -49,12 +62,14 @@ function rotationDatabase(
 		try {
 			return await callback(tx);
 		} finally {
-			unlock();
+			unlock?.();
 		}
 	};
 	return {
 		database: { transaction } as never,
 		starts,
+		lockSql,
+		predicates,
 		getCursor: () => cursor,
 	};
 }
@@ -126,12 +141,12 @@ describe("createDrizzleAiKeyRepository", () => {
 		expect(first.map((x) => x.id)).toEqual(["A", "B", "C"]);
 		expect(second.map((x) => x.id)).toEqual(["B", "C", "A"]);
 		expect(fake.starts).toEqual([0n, 1n]);
+		expect(fake.lockSql).toHaveLength(2);
+		expect(fake.lockSql.every((query) => /for update/i.test(query))).toBe(true);
 		expect(fake.getCursor()).toBe(2n);
 	});
 
-	test("returns only the adapter-filtered eligible keys", async () => {
-		// The fake models PostgreSQL applying the repository WHERE clause: disabled,
-		// invalid, and future-cooldown rows are absent from the selected result.
+	test("binds provider, enabled, valid status, and expired cooldown eligibility", async () => {
 		const fake = rotationDatabase([
 			{ id: "eligible", encryptedSecret: "enc:usable" },
 		]);
@@ -140,9 +155,18 @@ describe("createDrizzleAiKeyRepository", () => {
 			new Date("2026-07-11T00:00:00Z"),
 		);
 		expect(candidates).toEqual([{ id: "eligible", apiKey: "usable" }]);
-		expect(candidates.map((item) => item.id)).not.toEqual(
-			expect.arrayContaining(["disabled", "invalid", "cooling-down"]),
-		);
+		const query = new PgDialect().sqlToQuery(fake.predicates[0].getSQL());
+		expect(query.sql).toMatch(/"provider" = \$1/);
+		expect(query.sql).toMatch(/"enabled" = \$2/);
+		expect(query.sql).toMatch(/"validation_status" = \$3/);
+		expect(query.sql).toMatch(/"cooldown_until" is null/);
+		expect(query.sql).toMatch(/"cooldown_until" <= \$4/);
+		expect(query.params).toEqual([
+			"google",
+			true,
+			"valid",
+			"2026-07-11T00:00:00.000Z",
+		]);
 	});
 
 	test("persists success and failure health timestamps", async () => {

@@ -1,4 +1,4 @@
-import { and, asc, eq, isNull, lte, ne, or, sql } from "drizzle-orm";
+import { and, asc, eq, isNull, lte, or, sql } from "drizzle-orm";
 
 import { db } from "#/db";
 import { aiKeyRotationState, aiProviderKey } from "#/db/schema";
@@ -175,7 +175,7 @@ export function createDrizzleAiKeyRepository(
 						and(
 							eq(aiProviderKey.provider, provider),
 							eq(aiProviderKey.enabled, true),
-							ne(aiProviderKey.validationStatus, "invalid"),
+							eq(aiProviderKey.validationStatus, "valid"),
 							or(
 								isNull(aiProviderKey.cooldownUntil),
 								lte(aiProviderKey.cooldownUntil, now),
