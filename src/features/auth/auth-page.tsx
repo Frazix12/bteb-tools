@@ -1,3 +1,4 @@
+import { Link } from "@tanstack/react-router";
 import { Chrome } from "lucide-react";
 import { useState } from "react";
 
@@ -37,7 +38,8 @@ export function AuthPage({ redirect }: AuthPageProps) {
 					<p className="island-kicker">Sheet Generator</p>
 					<CardTitle className="text-2xl">Welcome</CardTitle>
 					<CardDescription>
-						Sign in to continue working on your saved documents.
+						Sign in to save documents and use AI Autofill, or continue as a
+						guest.
 					</CardDescription>
 				</CardHeader>
 				<CardContent className="grid gap-4">
@@ -54,6 +56,9 @@ export function AuthPage({ redirect }: AuthPageProps) {
 					>
 						<Chrome aria-hidden="true" />
 						{pending ? "Connecting…" : "Continue with Google"}
+					</Button>
+					<Button asChild className="w-full" variant="outline">
+						<Link to="/presets">Continue without signing in</Link>
 					</Button>
 				</CardContent>
 			</Card>
