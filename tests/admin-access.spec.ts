@@ -1,17 +1,11 @@
 import { expect, test as base } from "@playwright/test";
-
-const userState = process.env.E2E_USER_STORAGE_STATE;
-const adminState = process.env.E2E_ADMIN_STORAGE_STATE;
+import { AUTH_FIXTURE } from "./auth-fixture";
 
 const test = base.extend<{ role: "user" | "admin" }>({
 	role: ["user", { option: true }],
 	context: async ({ browser, role }, use) => {
-		const storageState = role === "admin" ? adminState : userState;
-		if (!storageState) {
-			throw new Error(
-				`E2E_${role.toUpperCase()}_STORAGE_STATE must point to a Better Auth Playwright storage-state fixture`,
-			);
-		}
+		const storageState =
+			role === "admin" ? AUTH_FIXTURE.adminState : AUTH_FIXTURE.userState;
 		const context = await browser.newContext({ storageState });
 		await use(context);
 		await context.close();
@@ -38,7 +32,20 @@ test.describe("admin", () => {
 
 	test("sees public presets seeded in PostgreSQL", async ({ page }) => {
 		await page.goto("/presets");
-		await expect(page.locator("main article, main [data-slot=card]")).toHaveCount(3);
+		for (const title of [
+			"ISTT Cover Page",
+			"Math Index Sheet",
+			"Physics Index Sheet",
+		]) {
+			await expect(page.getByRole("heading", { name: title, exact: true })).toBeVisible();
+		}
+		for (const slug of [
+			"istt-cover-page",
+			"math-index-sheet",
+			"physics-index-sheet",
+		]) {
+			await expect(page.locator(`a[href*="preset=${slug}"]`)).toHaveCount(1);
+		}
 	});
 
 	for (const path of ["/index-sheet/new", "/cover-page/new"]) {
