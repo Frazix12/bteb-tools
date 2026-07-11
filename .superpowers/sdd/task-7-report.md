@@ -33,3 +33,9 @@ Implemented admin-only repository and oRPC management surfaces for users, usage,
 - `pnpm check`: 132 files checked, no fixes required.
 - `pnpm exec tsc --noEmit`: exit 0.
 - `git diff --check`: exit 0.
+
+## Final repository-coverage follow-up
+
+- Added focused fake-Drizzle coverage that executes the production repository methods for user aggregate mapping/pagination, data counts, document DTO pagination, and transactional document deletion success/not-found.
+- Added preset repository coverage for listing/pagination, create/update actor attribution, enable toggles, SQLSTATE `23505` duplicate mapping, missing update/enable targets, and transactional delete success/not-found.
+- `pnpm vitest run src/features/admin/admin-repository.test.ts`: 1 file passed, 12 tests passed.
