@@ -17,6 +17,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as ApiSplatRouteImport } from './routes/api.$'
 import { Route as AuthPresetsRouteImport } from './routes/_auth/presets'
 import { Route as AuthDashboardRouteImport } from './routes/_auth/dashboard'
+import { Route as AuthAdminRouteImport } from './routes/_auth/admin'
 import { Route as ApiRpcSplatRouteImport } from './routes/api.rpc.$'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as AuthIndexSheetNewRouteImport } from './routes/_auth/index-sheet/new'
@@ -63,6 +64,11 @@ const AuthDashboardRoute = AuthDashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => AuthRoute,
 } as any)
+const AuthAdminRoute = AuthAdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => AuthRoute,
+} as any)
 const ApiRpcSplatRoute = ApiRpcSplatRouteImport.update({
   id: '/api/rpc/$',
   path: '/api/rpc/$',
@@ -99,6 +105,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
   '/visual-fixtures': typeof VisualFixturesRoute
+  '/admin': typeof AuthAdminRoute
   '/dashboard': typeof AuthDashboardRoute
   '/presets': typeof AuthPresetsRoute
   '/api/$': typeof ApiSplatRoute
@@ -114,6 +121,7 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
   '/visual-fixtures': typeof VisualFixturesRoute
+  '/admin': typeof AuthAdminRoute
   '/dashboard': typeof AuthDashboardRoute
   '/presets': typeof AuthPresetsRoute
   '/api/$': typeof ApiSplatRoute
@@ -131,6 +139,7 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
   '/visual-fixtures': typeof VisualFixturesRoute
+  '/_auth/admin': typeof AuthAdminRoute
   '/_auth/dashboard': typeof AuthDashboardRoute
   '/_auth/presets': typeof AuthPresetsRoute
   '/api/$': typeof ApiSplatRoute
@@ -148,6 +157,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/signup'
     | '/visual-fixtures'
+    | '/admin'
     | '/dashboard'
     | '/presets'
     | '/api/$'
@@ -163,6 +173,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/signup'
     | '/visual-fixtures'
+    | '/admin'
     | '/dashboard'
     | '/presets'
     | '/api/$'
@@ -179,6 +190,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/signup'
     | '/visual-fixtures'
+    | '/_auth/admin'
     | '/_auth/dashboard'
     | '/_auth/presets'
     | '/api/$'
@@ -259,6 +271,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthDashboardRouteImport
       parentRoute: typeof AuthRoute
     }
+    '/_auth/admin': {
+      id: '/_auth/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AuthAdminRouteImport
+      parentRoute: typeof AuthRoute
+    }
     '/api/rpc/$': {
       id: '/api/rpc/$'
       path: '/api/rpc/$'
@@ -305,6 +324,7 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthRouteChildren {
+  AuthAdminRoute: typeof AuthAdminRoute
   AuthDashboardRoute: typeof AuthDashboardRoute
   AuthPresetsRoute: typeof AuthPresetsRoute
   AuthCoverPageIdRoute: typeof AuthCoverPageIdRoute
@@ -314,6 +334,7 @@ interface AuthRouteChildren {
 }
 
 const AuthRouteChildren: AuthRouteChildren = {
+  AuthAdminRoute: AuthAdminRoute,
   AuthDashboardRoute: AuthDashboardRoute,
   AuthPresetsRoute: AuthPresetsRoute,
   AuthCoverPageIdRoute: AuthCoverPageIdRoute,
