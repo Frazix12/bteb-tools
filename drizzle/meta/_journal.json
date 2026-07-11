@@ -29,6 +29,13 @@
       "when": 1783749898521,
       "tag": "0003_admin_presets_ai_usage",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1783787480811,
+      "tag": "0004_curious_scrambler",
+      "breakpoints": true
     }
   ]
 }
