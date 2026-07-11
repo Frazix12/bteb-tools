@@ -1,10 +1,13 @@
 import pg from "pg";
-import { ROOT_DATABASE_URL, TEST_SCHEMA } from "./test-database";
+import { AUTH_FIXTURE } from "./auth-fixture";
+import { DATABASE_URL } from "./test-database";
 
 export default async function globalTeardown() {
-	const pool = new pg.Pool({ connectionString: ROOT_DATABASE_URL });
+	const pool = new pg.Pool({ connectionString: DATABASE_URL });
 	try {
-		await pool.query(`drop schema if exists ${TEST_SCHEMA} cascade`);
+		await pool.query('delete from "user" where email like $1', [
+			`%${AUTH_FIXTURE.emailSuffix}`,
+		]);
 	} finally {
 		await pool.end();
 	}

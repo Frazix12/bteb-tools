@@ -4,9 +4,9 @@ import { randomBytes, randomUUID } from "node:crypto";
 import { serializeSignedCookie } from "better-call";
 import pg from "pg";
 import { AUTH_FIXTURE } from "./auth-fixture";
-import { ROOT_DATABASE_URL, TEST_DATABASE_URL, TEST_SCHEMA } from "./test-database";
+import { DATABASE_URL } from "./test-database";
 
-const databaseUrl = TEST_DATABASE_URL;
+const databaseUrl = DATABASE_URL;
 const secret = process.env.BETTER_AUTH_SECRET;
 if (!databaseUrl) throw new Error("DATABASE_URL is required for Playwright setup");
 if (!secret || secret.length < 32)
@@ -14,21 +14,33 @@ if (!secret || secret.length < 32)
 const authSecret = secret;
 
 export default async function globalSetup() {
-	const root = new pg.Pool({ connectionString: ROOT_DATABASE_URL });
-	try {
-		await root.query(`drop schema if exists ${TEST_SCHEMA} cascade`);
-		await root.query(`create schema ${TEST_SCHEMA}`);
-	} finally {
-		await root.end();
+	const pool = new pg.Pool({ connectionString: databaseUrl });
+	const requiredColumns = {
+		user: ["id", "email", "role"],
+		session: ["id", "token", "user_id", "expires_at"],
+		document: ["id", "owner_id", "type", "title", "data"],
+		preset: ["slug", "title", "type", "data", "enabled"],
+	} as const;
+	const result = await pool.query<{ table_name: string; column_name: string }>(
+		"select table_name, column_name from information_schema.columns where table_schema = 'public' and table_name = any($1::text[])",
+		[Object.keys(requiredColumns)],
+	);
+	const available = new Set(
+		result.rows.map((row) => `${row.table_name}.${row.column_name}`),
+	);
+	const missing = Object.entries(requiredColumns).flatMap(([table, columns]) =>
+		columns.filter((column) => !available.has(`${table}.${column}`)).map((column) => `${table}.${column}`),
+	);
+	if (missing.length) {
+		await pool.end();
+		throw new Error(`Playwright database is not migrated; missing public columns: ${missing.join(", ")}`);
 	}
-	process.env.DATABASE_URL = TEST_DATABASE_URL;
-	execFileSync("pnpm", ["db:migrate"], { stdio: "inherit", env: process.env });
+	process.env.DATABASE_URL = databaseUrl;
 	execFileSync("pnpm", ["db:seed"], { stdio: "inherit", env: process.env });
 
-	const pool = new pg.Pool({ connectionString: databaseUrl });
 	try {
-		await pool.query('delete from "user" where email = any($1::text[])', [
-			[AUTH_FIXTURE.userEmail, AUTH_FIXTURE.adminEmail],
+		await pool.query('delete from "user" where email like $1', [
+			`%${AUTH_FIXTURE.emailSuffix}`,
 		]);
 		await mkdir("test-results/auth", { recursive: true });
 		for (const fixture of [
@@ -45,6 +57,12 @@ export default async function globalSetup() {
 				'insert into "session" (id, expires_at, token, created_at, updated_at, user_id) values ($1, now() + interval \'1 hour\', $2, now(), now(), $3)',
 				[randomUUID(), token, userId],
 			);
+			if (fixture.role === "user") {
+				await pool.query(
+					'insert into "document" (owner_id, type, title, data) values ($1, $2, $3, $4::jsonb)',
+					[userId, "index_sheet", "Playwright fixture document", JSON.stringify({ fixture: true })],
+				);
+			}
 			const serialized = await serializeSignedCookie(
 				"better-auth.session_token",
 				token,

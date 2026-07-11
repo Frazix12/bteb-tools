@@ -1,6 +1,7 @@
 export const AUTH_FIXTURE = {
-	adminEmail: "playwright-admin@bteb-tools.invalid",
+	emailSuffix: "@playwright.bteb-tools.invalid",
+	adminEmail: "admin@playwright.bteb-tools.invalid",
 	adminState: "test-results/auth/admin.json",
-	userEmail: "playwright-user@bteb-tools.invalid",
+	userEmail: "user@playwright.bteb-tools.invalid",
 	userState: "test-results/auth/user.json",
 } as const;

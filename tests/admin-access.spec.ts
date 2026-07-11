@@ -31,20 +31,15 @@ test.describe("admin", () => {
 	});
 
 	test("sees public presets seeded in PostgreSQL", async ({ page }) => {
-		await page.goto("/presets");
-		for (const title of [
-			"ISTT Cover Page",
-			"Math Index Sheet",
-			"Physics Index Sheet",
-		]) {
-			await expect(page.getByRole("heading", { name: title, exact: true })).toBeVisible();
-		}
-		for (const slug of [
-			"istt-cover-page",
-			"math-index-sheet",
-			"physics-index-sheet",
-		]) {
-			await expect(page.locator(`a[href*="preset=${slug}"]`)).toHaveCount(1);
+		await page.goto("/admin");
+		for (const [title, slug] of [
+			["ISTT Cover Page", "istt-cover-page"],
+			["Math Index Sheet", "math-index-sheet"],
+			["Physics Index Sheet", "physics-index-sheet"],
+		] as const) {
+			await expect(page.getByText(title, { exact: true })).toBeVisible();
+			await page.getByRole("button", { name: `Edit ${title}` }).click();
+			await expect(page.getByLabel("Slug")).toHaveValue(slug);
 		}
 	});
 
