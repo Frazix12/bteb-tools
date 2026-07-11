@@ -15,6 +15,24 @@ describe("normalizeRedirectTarget", () => {
 		);
 		expect(normalizeRedirectTarget("//example.com/steal")).toBe("/dashboard");
 	});
+
+	test("rejects backslash and encoded separator redirect bypasses", () => {
+		for (const target of [
+			"/\\evil.example",
+			"/\\\\evil.example",
+			"///evil.example",
+			"/%5cevil.example",
+			"/%2f%2fevil.example",
+		]) {
+			expect(normalizeRedirectTarget(target)).toBe("/dashboard");
+		}
+	});
+
+	test("preserves the path, search, and hash of a local target", () => {
+		expect(normalizeRedirectTarget("/presets?p=1#saved")).toBe(
+			"/presets?p=1#saved",
+		);
+	});
 });
 
 describe("getPostAuthDestination", () => {
