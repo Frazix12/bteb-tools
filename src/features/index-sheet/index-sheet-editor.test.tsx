@@ -10,6 +10,15 @@ vi.mock("#/features/autofill/queries", () => ({
 		mutationFn: extractMutation,
 	}),
 }));
+vi.mock("#/features/auth/sign-in-action", () => ({
+	SignInAction: ({
+		children,
+		redirect,
+	}: {
+		children: React.ReactNode;
+		redirect: string;
+	}) => <a href={`/login?redirect=${redirect}`}>{children}</a>,
+}));
 
 import { createBlankIndexSheet } from "./defaults";
 import { IndexSheetEditor } from "./index-sheet-editor";
@@ -36,6 +45,23 @@ const renderEditor = (overrides = {}) => {
 };
 
 describe("index sheet editor", () => {
+	test("keeps print available but gates save and AI for guests", () => {
+		const onSave = vi.fn();
+		renderEditor({
+			canSave: false,
+			canUseAi: false,
+			signInRedirect: "/index-sheet/new",
+			onSave,
+		});
+		expect(
+			screen.getByRole("button", { name: /print or save as pdf/i }),
+		).toBeTruthy();
+		expect(screen.getByRole("link", { name: /sign in to save/i })).toBeTruthy();
+		expect(
+			screen.getByRole("link", { name: /sign in to use ai/i }),
+		).toBeTruthy();
+		expect(onSave).not.toHaveBeenCalled();
+	});
 	test("applies reviewed autofill to the dirty draft without saving", async () => {
 		extractMutation.mockResolvedValueOnce({
 			type: "index_sheet",

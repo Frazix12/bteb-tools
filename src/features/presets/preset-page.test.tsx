@@ -13,7 +13,12 @@ vi.mock("@tanstack/react-router", () => ({
 	Link: ({ children, to, search }: any) => (
 		<a href={`${to}?preset=${search?.preset ?? ""}`}>{children}</a>
 	),
-	createFileRoute: () => (options: any) => ({ ...options, useSearch: vi.fn() }),
+	createFileRoute: () => (options: any) => ({
+		...options,
+		useSearch: vi.fn(),
+		useRouteContext: vi.fn(() => ({ user: null })),
+	}),
+	useLocation: vi.fn(() => ({ href: "/current" })),
 }));
 
 vi.mock("#/features/cover-page/cover-page-editor", () => ({
@@ -51,11 +56,19 @@ import {
 	Route as IndexRoute,
 	NewIndexSheet,
 } from "#/routes/_auth/index-sheet/new";
-import { PresetCards } from "#/routes/_auth/presets";
+import { PresetCards, PresetsPage } from "#/routes/_auth/presets";
 
 afterEach(cleanup);
 
 describe("database-backed preset pages", () => {
+	test("uses guest-safe instructions and sign-in navigation", () => {
+		queryState.current = { isPending: false, data: [] };
+		render(<PresetsPage />);
+		expect(screen.getByText(/then print or save as PDF/i)).toBeTruthy();
+		expect(
+			screen.getByRole("link", { name: /sign in/i }).getAttribute("href"),
+		).toBe("/login?preset=");
+	});
 	test("renders every enabled server row with an icon-labelled action", () => {
 		render(
 			<PresetCards
