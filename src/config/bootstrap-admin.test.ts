@@ -17,4 +17,13 @@ describe("bootstrap admin config", () => {
 			}),
 		).toBe("admin@example.com");
 	});
+
+	test.each([
+		"",
+		"   ",
+	])("uses the shared default for an empty override %#", (override) => {
+		expect(getBootstrapAdminEmail({ BOOTSTRAP_ADMIN_EMAIL: override })).toBe(
+			BOOTSTRAP_ADMIN_EMAIL_DEFAULT,
+		);
+	});
 });

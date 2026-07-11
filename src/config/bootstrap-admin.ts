@@ -11,7 +11,7 @@ export function getBootstrapAdminEmail(
 			import.meta.env.BOOTSTRAP_ADMIN_EMAIL,
 	},
 ): string {
-	return (runtimeEnv.BOOTSTRAP_ADMIN_EMAIL ?? BOOTSTRAP_ADMIN_EMAIL_DEFAULT)
-		.trim()
-		.toLowerCase();
+	const configuredEmail =
+		runtimeEnv.BOOTSTRAP_ADMIN_EMAIL?.trim().toLowerCase();
+	return configuredEmail || BOOTSTRAP_ADMIN_EMAIL_DEFAULT;
 }
