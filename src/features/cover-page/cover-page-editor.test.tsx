@@ -109,41 +109,19 @@ describe("cover page editor", () => {
 		expect(screen.getByText("Logo")).toBeTruthy();
 	});
 
-	test("imports legacy JSON and exports the exact current draft", async () => {
-		const onExport = vi.fn();
-		renderEditor({ onExport });
-		const imported = {
-			...createBlankCoverPage(),
-			exportedAt: "2026-07-10T00:00:00.000Z",
-			instituteName: "Imported Institute",
-			logoDataUrl: "data:image/png;base64,YQ==",
-			submittedBy: {
-				...createBlankCoverPage().submittedBy,
-				name: "Imported Student",
-			},
-		};
-		fireEvent.change(screen.getByLabelText("Import JSON file"), {
-			target: {
-				files: [
-					new File([JSON.stringify(imported)], "cover.json", {
-						type: "application/json",
-					}),
-				],
-			},
-		});
-		expect(await screen.findByDisplayValue("Imported Institute")).toBeTruthy();
-		expect(screen.getByAltText("Institution logo")).toBeTruthy();
-		fireEvent.click(screen.getByRole("button", { name: "Export JSON" }));
-		expect(onExport).toHaveBeenCalledWith(imported);
-
-		fireEvent.change(screen.getByLabelText("Import JSON file"), {
-			target: {
-				files: [new File(["bad"], "bad.json", { type: "application/json" })],
-			},
-		});
-		expect((await screen.findByRole("alert")).textContent).toContain(
-			"Could not read",
-		);
+	test("offers save and print without JSON transfer controls", () => {
+		renderEditor();
+		expect(
+			screen.getByRole("button", { name: "Save cover page" }),
+		).toBeTruthy();
+		expect(
+			screen.getByRole("button", { name: "Print or save as PDF" }),
+		).toBeTruthy();
+		expect(screen.queryByText(["Import", "JSON"].join(" "))).toBeNull();
+		expect(screen.queryByText(["Export", "JSON"].join(" "))).toBeNull();
+		expect(
+			document.querySelector('input[type="file"][accept*="json"]'),
+		).toBeNull();
 	});
 
 	test("saves logo in the draft, reports errors, prints, and tracks dirty state", async () => {

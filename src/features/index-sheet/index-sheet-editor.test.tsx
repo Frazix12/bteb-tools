@@ -162,44 +162,17 @@ describe("index sheet editor", () => {
 		expect(screen.getAllByText("Second").length).toBeGreaterThan(1);
 	});
 
-	test("imports valid legacy JSON, rejects invalid JSON, and exports the exact draft", async () => {
-		const onExport = vi.fn();
-		renderEditor({ onExport });
-		const input = screen.getByLabelText("Import JSON file");
-		const imported = {
-			schemaVersion: 1,
-			exportedAt: "2026-07-10T00:00:00.000Z",
-			title: "Imported",
-			rowsPerPage: 10,
-			showPageNo: false,
-			entries: [
-				{ name: "Imported row", issueDate: "", submitDate: "", pageNo: "" },
-			],
-		};
-		fireEvent.change(input, {
-			target: {
-				files: [
-					new File([JSON.stringify(imported)], "ok.json", {
-						type: "application/json",
-					}),
-				],
-			},
-		});
-		expect(await screen.findByDisplayValue("Imported")).toBeTruthy();
-
-		fireEvent.change(input, {
-			target: {
-				files: [new File(["nope"], "bad.json", { type: "application/json" })],
-			},
-		});
-		expect((await screen.findByRole("alert")).textContent).toContain(
-			"Could not read",
-		);
-
-		fireEvent.click(screen.getByRole("button", { name: "Export JSON" }));
-		expect(onExport).toHaveBeenCalledWith(
-			expect.objectContaining({ title: "Imported", entries: imported.entries }),
-		);
+	test("offers save and print without JSON transfer controls", () => {
+		renderEditor();
+		expect(screen.getByRole("button", { name: "Save sheet" })).toBeTruthy();
+		expect(
+			screen.getByRole("button", { name: "Print or save as PDF" }),
+		).toBeTruthy();
+		expect(screen.queryByText(["Import", "JSON"].join(" "))).toBeNull();
+		expect(screen.queryByText(["Export", "JSON"].join(" "))).toBeNull();
+		expect(
+			document.querySelector('input[type="file"][accept*="json"]'),
+		).toBeNull();
 	});
 
 	test("saves the current draft, exposes failures, prints, and reports dirty state", async () => {
@@ -220,18 +193,6 @@ describe("index sheet editor", () => {
 			screen.getByRole("button", { name: "Print or save as PDF" }),
 		);
 		expect(print).toHaveBeenCalledOnce();
-	});
-
-	test("exports a blank title with the legacy INDEX fallback", () => {
-		const onExport = vi.fn();
-		renderEditor({ onExport });
-		fireEvent.change(screen.getByLabelText("Sheet title"), {
-			target: { value: "" },
-		});
-		fireEvent.click(screen.getByRole("button", { name: "Export JSON" }));
-		expect(onExport).toHaveBeenCalledWith(
-			expect.objectContaining({ title: "INDEX" }),
-		);
 	});
 
 	test("normalizes a blank title in the saved local draft", async () => {

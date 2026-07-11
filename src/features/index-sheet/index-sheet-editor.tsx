@@ -1,7 +1,7 @@
 import { useForm } from "@tanstack/react-form";
 import { useMutation } from "@tanstack/react-query";
 import { useStore } from "@tanstack/react-store";
-import { Download, Printer, Save, Upload } from "lucide-react";
+import { Printer, Save } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 import { Button } from "#/components/ui/button";
@@ -14,10 +14,6 @@ import {
 } from "#/components/ui/card";
 import { AutofillDialog } from "#/features/autofill/autofill-dialog";
 import { autofillExtractMutationOptions } from "#/features/autofill/queries";
-import {
-	parseLegacyDocument,
-	serializeLegacyDocument,
-} from "#/features/documents/legacy-json";
 import type { IndexSheetData } from "#/orpc/schemas/document";
 
 import { IndexSheetForm } from "./index-sheet-form";
@@ -35,33 +31,13 @@ interface Props {
 	initialData: IndexSheetData;
 	isSaving?: boolean;
 	onDirtyChange?: (dirty: boolean) => void;
-	onExport?: (data: IndexSheetData) => void;
 	onSave: (data: IndexSheetData) => Promise<unknown>;
-}
-
-function downloadJson(data: IndexSheetData) {
-	const json = serializeLegacyDocument(data);
-	const blob = new Blob([json], { type: "application/json" });
-	const url = URL.createObjectURL(blob);
-	const anchor = document.createElement("a");
-	const safeTitle =
-		(data.title || "index-sheet")
-			.trim()
-			.replace(/[^a-z0-9\-_]+/gi, "_")
-			.toLowerCase() || "index-sheet";
-	anchor.href = url;
-	anchor.download = `${safeTitle}.json`;
-	document.body.appendChild(anchor);
-	anchor.click();
-	anchor.remove();
-	URL.revokeObjectURL(url);
 }
 
 export function IndexSheetEditor({
 	initialData,
 	isSaving = false,
 	onDirtyChange,
-	onExport,
 	onSave,
 }: Props) {
 	const form = useForm({ defaultValues: initialData });
@@ -72,7 +48,6 @@ export function IndexSheetEditor({
 	const [rowError, setRowError] = useState<string | null>(null);
 	const [message, setMessage] = useState<string | null>(null);
 	const initial = useRef(JSON.stringify(initialData));
-	const fileRef = useRef<HTMLInputElement>(null);
 
 	useEffect(
 		() => onDirtyChange?.(JSON.stringify(data) !== initial.current),
@@ -104,22 +79,6 @@ export function IndexSheetEditor({
 		else entries[editingIndex] = row;
 		changeData({ ...data, entries });
 		cancelEdit();
-	};
-	const importFile = async (file?: File) => {
-		if (!file) return;
-		try {
-			const parsed = parseLegacyDocument(await file.text(), "index_sheet");
-			if (!parsed.ok) setMessage(parsed.message);
-			else {
-				changeData(parsed.data);
-				cancelEdit();
-				setMessage("Index sheet imported.");
-			}
-		} catch {
-			setMessage("Could not read that file as JSON.");
-		} finally {
-			if (fileRef.current) fileRef.current.value = "";
-		}
 	};
 	const save = async () => {
 		setMessage(null);
@@ -198,33 +157,7 @@ export function IndexSheetEditor({
 								<Printer />
 								Print or save as PDF
 							</Button>
-							<Button
-								variant="outline"
-								onClick={() => {
-									const exportData = { ...data, title: data.title || "INDEX" };
-									if (onExport) onExport(exportData);
-									else downloadJson(exportData);
-								}}
-							>
-								<Download />
-								Export JSON
-							</Button>
-							<Button
-								variant="outline"
-								onClick={() => fileRef.current?.click()}
-							>
-								<Upload />
-								Import JSON
-							</Button>
 						</div>
-						<input
-							aria-label="Import JSON file"
-							className="sr-only"
-							ref={fileRef}
-							type="file"
-							accept="application/json,.json"
-							onChange={(event) => void importFile(event.target.files?.[0])}
-						/>
 					</CardContent>
 				</Card>
 			</section>

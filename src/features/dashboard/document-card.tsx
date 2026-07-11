@@ -1,4 +1,4 @@
-import { Copy } from "lucide-react";
+import { Copy, ExternalLink } from "lucide-react";
 
 import { Button } from "#/components/ui/button";
 import {
@@ -67,6 +67,7 @@ export function DocumentCard({
 						aria-label={`Open ${document.title}`}
 						href={documentHref(document)}
 					>
+						<ExternalLink aria-hidden="true" />
 						Open
 					</a>
 				</Button>

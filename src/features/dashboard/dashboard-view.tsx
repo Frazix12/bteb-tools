@@ -1,3 +1,4 @@
+import { FilePlus2, FolderOpen, RefreshCw, Sparkles } from "lucide-react";
 import { Button } from "#/components/ui/button";
 import {
 	Card,
@@ -25,13 +26,22 @@ function NewDocumentActions() {
 	return (
 		<div className="flex flex-wrap gap-3">
 			<Button asChild>
-				<a href="/index-sheet/new">New Index Sheet</a>
+				<a href="/index-sheet/new">
+					<FilePlus2 aria-hidden="true" />
+					New Index Sheet
+				</a>
 			</Button>
 			<Button asChild variant="outline">
-				<a href="/cover-page/new">New Cover Page</a>
+				<a href="/cover-page/new">
+					<FilePlus2 aria-hidden="true" />
+					New Cover Page
+				</a>
 			</Button>
 			<Button asChild variant="outline">
-				<a href="/presets">Browse Presets</a>
+				<a href="/presets">
+					<Sparkles aria-hidden="true" />
+					Browse Presets
+				</a>
 			</Button>
 		</div>
 	);
@@ -69,6 +79,7 @@ export function DashboardView(props: DashboardViewProps) {
 					</CardHeader>
 					<CardContent>
 						<Button onClick={props.onRetry} variant="outline">
+							<RefreshCw aria-hidden="true" />
 							Try again
 						</Button>
 					</CardContent>
@@ -76,6 +87,10 @@ export function DashboardView(props: DashboardViewProps) {
 			) : props.documents.length === 0 ? (
 				<Card className="border-dashed text-center">
 					<CardHeader>
+						<FolderOpen
+							aria-hidden="true"
+							className="mx-auto size-8 text-muted-foreground"
+						/>
 						<CardTitle>No saved documents yet</CardTitle>
 						<CardDescription>
 							Create an index sheet or cover page using the actions above.
