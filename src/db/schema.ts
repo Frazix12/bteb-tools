@@ -1,4 +1,5 @@
 import {
+	bigint,
 	bigserial,
 	boolean,
 	index,
@@ -10,6 +11,8 @@ import {
 	timestamp,
 	uuid,
 } from "drizzle-orm/pg-core";
+
+export const userRoleEnum = pgEnum("user_role", ["user", "admin"]);
 
 export const todos = pgTable("todos", {
 	id: serial("id").primaryKey(),
@@ -23,6 +26,7 @@ export const user = pgTable("user", {
 	email: text("email").notNull().unique(),
 	emailVerified: boolean("email_verified").default(false).notNull(),
 	image: text("image"),
+	role: userRoleEnum("role").default("user").notNull(),
 	createdAt: timestamp("created_at").defaultNow().notNull(),
 	updatedAt: timestamp("updated_at")
 		.defaultNow()
@@ -93,6 +97,61 @@ export const documentTypeEnum = pgEnum("document_type", [
 	"index_sheet",
 	"cover_page",
 ]);
+
+export const preset = pgTable(
+	"preset",
+	{
+		id: uuid("id").defaultRandom().primaryKey(),
+		slug: text("slug").notNull().unique(),
+		title: text("title").notNull(),
+		description: text("description").notNull(),
+		type: documentTypeEnum("type").notNull(),
+		data: jsonb("data").notNull(),
+		enabled: boolean("enabled").default(true).notNull(),
+		createdBy: text("created_by").references(() => user.id, {
+			onDelete: "set null",
+		}),
+		updatedBy: text("updated_by").references(() => user.id, {
+			onDelete: "set null",
+		}),
+		createdAt: timestamp("created_at").defaultNow().notNull(),
+		updatedAt: timestamp("updated_at")
+			.defaultNow()
+			.$onUpdate(() => new Date())
+			.notNull(),
+	},
+	(table) => [index("preset_enabled_type_idx").on(table.enabled, table.type)],
+);
+
+export const aiUsageEvent = pgTable(
+	"ai_usage_event",
+	{
+		id: uuid("id").defaultRandom().primaryKey(),
+		ownerId: text("owner_id")
+			.notNull()
+			.references(() => user.id, { onDelete: "cascade" }),
+		provider: text("provider").notNull(),
+		model: text("model").notNull(),
+		inputTokens: bigint("input_tokens", { mode: "bigint" }).notNull(),
+		outputTokens: bigint("output_tokens", { mode: "bigint" }).notNull(),
+		costMicros: bigint("cost_micros", { mode: "bigint" }).notNull(),
+		pricingVersion: text("pricing_version").notNull(),
+		outcome: text("outcome").notNull(),
+		createdAt: timestamp("created_at", { withTimezone: true })
+			.defaultNow()
+			.notNull(),
+	},
+	(table) => [
+		index("ai_usage_event_owner_created_at_idx").on(
+			table.ownerId,
+			table.createdAt.desc(),
+		),
+		index("ai_usage_event_model_created_at_idx").on(
+			table.model,
+			table.createdAt.desc(),
+		),
+	],
+);
 
 export const documents = pgTable(
 	"document",
