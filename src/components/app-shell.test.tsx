@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, test, vi } from "vitest";
 
 let role: "user" | "admin" = "user";
@@ -15,7 +15,14 @@ vi.mock("@tanstack/react-router", () => ({
 		invalidate: vi.fn(),
 		options: { context: { queryClient: { clear: vi.fn() } } },
 	}),
-	useRouteContext: () => ({ user: { role } }),
+	useRouteContext: () => ({
+		user: {
+			role,
+			name: "Irfan",
+			email: "frazixgaming22@gmail.com",
+			image: null,
+		},
+	}),
 }));
 
 import { AppShell } from "./app-shell";
@@ -26,10 +33,24 @@ describe("app shell navigation", () => {
 	test("shows standard navigation but hides admin from users", () => {
 		role = "user";
 		render(<AppShell />);
-		expect(screen.getByRole("link", { name: "Dashboard" })).toBeTruthy();
-		expect(screen.getByRole("link", { name: "Presets" })).toBeTruthy();
-		expect(screen.getByRole("button", { name: "Sign out" })).toBeTruthy();
+		expect(screen.getByRole("link", { name: "Home" })).toBeTruthy();
+		expect(screen.getByRole("link", { name: "Browse Presets" })).toBeTruthy();
+		expect(document.querySelector("[data-centered-navigation]")).toBeTruthy();
+		expect(screen.queryByRole("button", { name: "Sign out" })).toBeNull();
 		expect(screen.queryByRole("link", { name: "Admin" })).toBeNull();
+	});
+
+	test("opens an accessible profile menu with identity and red logout action", () => {
+		role = "user";
+		render(<AppShell />);
+		fireEvent.pointerDown(
+			screen.getByRole("button", { name: "Open user menu" }),
+			{ button: 0, ctrlKey: false },
+		);
+		expect(screen.getByText("Irfan")).toBeTruthy();
+		expect(screen.getByText("frazixgaming22@gmail.com")).toBeTruthy();
+		const logout = screen.getByRole("menuitem", { name: "Log out" });
+		expect(logout.className).toContain("text-destructive");
 	});
 
 	test("shows admin navigation to administrators", () => {

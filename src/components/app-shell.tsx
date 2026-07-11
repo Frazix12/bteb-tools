@@ -5,15 +5,10 @@ import {
 	useRouteContext,
 	useRouter,
 } from "@tanstack/react-router";
-import {
-	FileText,
-	LayoutDashboard,
-	LogOut,
-	Settings,
-	Shield,
-} from "lucide-react";
+import { FileText, House, Settings, Shield } from "lucide-react";
 
 import { Button } from "#/components/ui/button";
+import { UserMenu } from "#/components/user-menu";
 import { authClient } from "#/lib/auth-client";
 
 export function AppShell() {
@@ -27,7 +22,7 @@ export function AppShell() {
 				className="border-b border-[var(--line)] bg-[var(--header-bg)] backdrop-blur-lg"
 				data-print-hidden
 			>
-				<nav className="page-wrap flex flex-wrap items-center justify-between gap-4 py-3">
+				<nav className="page-wrap grid grid-cols-[1fr_auto] items-center gap-3 py-3 md:grid-cols-[1fr_auto_1fr]">
 					<Link
 						className="inline-flex items-center gap-2 font-semibold text-[var(--sea-ink)] no-underline"
 						to="/dashboard"
@@ -35,17 +30,20 @@ export function AppShell() {
 						<FileText aria-hidden="true" className="size-5" />
 						Sheet Generator
 					</Link>
-					<div className="flex flex-wrap items-center gap-2">
+					<div
+						data-centered-navigation
+						className="order-3 col-span-2 flex flex-wrap items-center justify-center gap-1 md:order-none md:col-span-1"
+					>
 						<Button asChild variant="ghost">
 							<Link to="/dashboard">
-								<LayoutDashboard aria-hidden="true" />
-								Dashboard
+								<House aria-hidden="true" />
+								Home
 							</Link>
 						</Button>
 						<Button asChild variant="ghost">
 							<Link to="/presets">
 								<Settings aria-hidden="true" />
-								Presets
+								Browse Presets
 							</Link>
 						</Button>
 						{user.role === "admin" && (
@@ -56,18 +54,17 @@ export function AppShell() {
 								</Link>
 							</Button>
 						)}
-						<Button
-							onClick={async () => {
+					</div>
+					<div className="justify-self-end">
+						<UserMenu
+							user={user}
+							onLogout={async () => {
 								await authClient.signOut();
 								router.options.context.queryClient.clear();
 								await router.invalidate();
 								await navigate({ to: "/login" });
 							}}
-							variant="outline"
-						>
-							<LogOut aria-hidden="true" />
-							Sign out
-						</Button>
+						/>
 					</div>
 				</nav>
 			</header>
