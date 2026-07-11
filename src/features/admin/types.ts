@@ -11,6 +11,7 @@ export type AdminUser = {
 	name: string | null;
 	email: string;
 	role: "user" | "admin";
+	createdAt: Date;
 	documentCount: number;
 	aiRequests: number;
 	inputTokens: number | string | null;
@@ -60,6 +61,8 @@ export type Usage = {
 	byDate: {
 		date: string;
 		events: number | string;
+		inputTokens: number | string | null;
+		outputTokens: number | string | null;
 		costMicros: number | string | null;
 	}[];
 	byUser: {
@@ -67,6 +70,8 @@ export type Usage = {
 		name: string;
 		email: string;
 		events: number | string;
+		inputTokens: number | string | null;
+		outputTokens: number | string | null;
 		costMicros: number | string | null;
 	}[];
 	byOutcome: {

@@ -210,6 +210,8 @@ export const drizzleAdminRepository: AdminRepository = {
 				.select({
 					date: day,
 					events: count(),
+					inputTokens: sum(aiUsageEvent.inputTokens),
+					outputTokens: sum(aiUsageEvent.outputTokens),
 					costMicros: sum(aiUsageEvent.costMicros),
 				})
 				.from(aiUsageEvent)

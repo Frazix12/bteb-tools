@@ -47,7 +47,8 @@ export function UsagePanel({
 			<ul>
 				{data.byDate.map((x) => (
 					<li key={x.date}>
-						{x.date}: {x.events} requests · $
+						{x.date}: {x.events} requests · {tokens(x.inputTokens)} input /{" "}
+						{tokens(x.outputTokens)} output · $
 						{(Number(x.costMicros || 0) / 1_000_000).toFixed(4)}
 					</li>
 				))}
@@ -76,7 +77,8 @@ export function UsagePanel({
 			<ul>
 				{data.byUser.map((x) => (
 					<li key={x.ownerId}>
-						{x.name || x.email}: {x.events} requests · $
+						{x.name || x.email}: {x.events} requests · {tokens(x.inputTokens)}{" "}
+						input / {tokens(x.outputTokens)} output · $
 						{(Number(x.costMicros || 0) / 1_000_000).toFixed(4)}
 					</li>
 				))}

@@ -12,6 +12,7 @@ const props = {
 				name: "Owner",
 				email: BOOTSTRAP_ADMIN_EMAIL_DEFAULT,
 				role: "admin" as const,
+				createdAt: new Date("2026-07-01T00:00:00Z"),
 				documentCount: 2,
 				aiRequests: 3,
 				inputTokens: 100,
@@ -23,6 +24,7 @@ const props = {
 				name: "User",
 				email: "user@example.com",
 				role: "user" as const,
+				createdAt: new Date("2026-07-02T00:00:00Z"),
 				documentCount: 0,
 				aiRequests: 0,
 				inputTokens: null,
@@ -51,13 +53,23 @@ const props = {
 				costMicros: 12500,
 			},
 		],
-		byDate: [{ date: "2026-07-11", events: 3, costMicros: 12500 }],
+		byDate: [
+			{
+				date: "2026-07-11",
+				events: 3,
+				inputTokens: null,
+				outputTokens: 50,
+				costMicros: 12500,
+			},
+		],
 		byUser: [
 			{
 				ownerId: "bootstrap",
 				name: "Owner",
 				email: BOOTSTRAP_ADMIN_EMAIL_DEFAULT,
 				events: 3,
+				inputTokens: 100,
+				outputTokens: null,
 				costMicros: 12500,
 			},
 		],
@@ -126,10 +138,18 @@ describe("admin dashboard", () => {
 			expect(screen.getByRole("heading", { name })).toBeTruthy();
 		expect(screen.getAllByText("Estimated cost").length).toBeGreaterThan(0);
 		expect(screen.getAllByText("$0.0125").length).toBeGreaterThan(0);
+		expect(screen.getByRole("columnheader", { name: "Joined" })).toBeTruthy();
+		expect(screen.getByText("Jul 1, 2026")).toBeTruthy();
 		expect(screen.getByText(/google \/ gemini-test/).textContent).toContain(
 			"Unknown input",
 		);
 		expect(screen.getByText("Date page 1 of 2 · 21 dates")).toBeTruthy();
+		expect(screen.getByText(/2026-07-11:/).textContent).toContain(
+			"Unknown input / 50 output",
+		);
+		expect(screen.getByText(/Owner:/).textContent).toContain(
+			"100 input / Unknown output",
+		);
 		expect(screen.getByText("User page 1 of 2 · 21 users")).toBeTruthy();
 		fireEvent.click(screen.getByRole("button", { name: "Next date page" }));
 		fireEvent.click(screen.getByRole("button", { name: "Next user page" }));

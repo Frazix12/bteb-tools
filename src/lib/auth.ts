@@ -6,6 +6,10 @@ import { eq } from "drizzle-orm";
 import { db } from "#/db";
 import * as schema from "#/db/schema";
 import { env } from "#/env";
+import {
+	getSessionUserUpdate,
+	normalizeCreatedAuthUser,
+} from "./auth-normalization";
 
 export const auth = betterAuth({
 	baseURL: env.BETTER_AUTH_URL,
@@ -28,14 +32,7 @@ export const auth = betterAuth({
 		user: {
 			create: {
 				before: async (user) => ({
-					data: {
-						...user,
-						role:
-							user.email.trim().toLowerCase() ===
-							env.BOOTSTRAP_ADMIN_EMAIL.trim().toLowerCase()
-								? "admin"
-								: "user",
-					},
+					data: normalizeCreatedAuthUser(user, env.BOOTSTRAP_ADMIN_EMAIL),
 				}),
 			},
 		},
@@ -47,14 +44,13 @@ export const auth = betterAuth({
 						.from(schema.user)
 						.where(eq(schema.user.id, session.userId))
 						.limit(1);
-					if (
-						account?.role !== "admin" &&
-						account?.email.trim().toLowerCase() ===
-							env.BOOTSTRAP_ADMIN_EMAIL.trim().toLowerCase()
-					) {
+					const update = account
+						? getSessionUserUpdate(account, env.BOOTSTRAP_ADMIN_EMAIL)
+						: null;
+					if (update) {
 						await db
 							.update(schema.user)
-							.set({ role: "admin" })
+							.set(update)
 							.where(eq(schema.user.id, session.userId));
 					}
 					return { data: session };

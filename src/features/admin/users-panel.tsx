@@ -10,6 +10,11 @@ type Props = {
 	pending: boolean;
 	bootstrapEmail: string;
 };
+const joinedDate = (date: Date) =>
+	new Intl.DateTimeFormat("en-US", {
+		dateStyle: "medium",
+		timeZone: "UTC",
+	}).format(date);
 export function UsersPanel({
 	data,
 	onRole,
@@ -30,6 +35,7 @@ export function UsersPanel({
 							<th>Name</th>
 							<th>Email</th>
 							<th>Role</th>
+							<th>Joined</th>
 							<th>Documents</th>
 							<th>AI requests</th>
 							<th>Tokens (in/out)</th>
@@ -43,6 +49,7 @@ export function UsersPanel({
 								<td>{u.name}</td>
 								<td>{u.email}</td>
 								<td>{u.role}</td>
+								<td>{joinedDate(u.createdAt)}</td>
 								<td>{u.documentCount}</td>
 								<td>{u.aiRequests}</td>
 								<td>
