@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
+import { requireSession } from "#/features/auth/require-session";
 import { CoverPageEditor } from "#/features/cover-page/cover-page-editor";
 import { inlineLogoStorage } from "#/features/cover-page/logo-storage";
 import { useCoverPageDocument } from "#/features/editor/use-document-editor";
@@ -7,6 +8,7 @@ import { useUnsavedWarning } from "#/features/editor/use-unsaved-warning";
 import type { CoverPageData } from "#/orpc/schemas/document";
 
 export const Route = createFileRoute("/_auth/cover-page/$id")({
+	beforeLoad: ({ location }) => requireSession(location.href),
 	component: EditCoverPage,
 });
 

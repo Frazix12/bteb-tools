@@ -25,7 +25,7 @@ export function AppShell() {
 				<nav className="page-wrap grid grid-cols-[1fr_auto] items-center gap-3 py-3 md:grid-cols-[1fr_auto_1fr]">
 					<Link
 						className="inline-flex items-center gap-2 font-semibold text-[var(--sea-ink)] no-underline"
-						to="/dashboard"
+						to={user ? "/dashboard" : "/presets"}
 					>
 						<FileText aria-hidden="true" className="size-5" />
 						Sheet Generator
@@ -34,19 +34,21 @@ export function AppShell() {
 						data-centered-navigation
 						className="order-3 col-span-2 flex flex-wrap items-center justify-center gap-1 md:order-none md:col-span-1"
 					>
-						<Button asChild variant="ghost">
-							<Link to="/dashboard">
-								<House aria-hidden="true" />
-								Home
-							</Link>
-						</Button>
+						{user && (
+							<Button asChild variant="ghost">
+								<Link to="/dashboard">
+									<House aria-hidden="true" />
+									Home
+								</Link>
+							</Button>
+						)}
 						<Button asChild variant="ghost">
 							<Link to="/presets">
 								<Settings aria-hidden="true" />
 								Browse Presets
 							</Link>
 						</Button>
-						{user.role === "admin" && (
+						{user?.role === "admin" && (
 							<Button asChild variant="ghost">
 								<Link to="/admin">
 									<Shield aria-hidden="true" />
@@ -56,15 +58,21 @@ export function AppShell() {
 						)}
 					</div>
 					<div className="justify-self-end">
-						<UserMenu
-							user={user}
-							onLogout={async () => {
-								await authClient.signOut();
-								router.options.context.queryClient.clear();
-								await router.invalidate();
-								await navigate({ to: "/login" });
-							}}
-						/>
+						{user ? (
+							<UserMenu
+								user={user}
+								onLogout={async () => {
+									await authClient.signOut();
+									router.options.context.queryClient.clear();
+									await router.invalidate();
+									await navigate({ to: "/login" });
+								}}
+							/>
+						) : (
+							<Button asChild>
+								<Link to="/login">Sign in</Link>
+							</Button>
+						)}
 					</div>
 				</nav>
 			</header>

@@ -21,6 +21,7 @@ import type {
 	Summary,
 	Usage,
 } from "#/features/admin/types";
+import { requireSession } from "#/features/auth/require-session";
 import { orpc } from "#/orpc/client";
 
 type Action =
@@ -31,8 +32,10 @@ type Action =
 	| { kind: "update"; input: PresetInput & { id: string } };
 
 export const Route = createFileRoute("/_auth/admin")({
-	beforeLoad: ({ context }) => {
-		if (context.user.role !== "admin") throw redirect({ to: "/dashboard" });
+	beforeLoad: async ({ location }) => {
+		const { user } = await requireSession(location.href);
+		if (user.role !== "admin") throw redirect({ to: "/dashboard" });
+		return { user };
 	},
 	component: AdminPage,
 });

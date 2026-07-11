@@ -1,11 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
+import { requireSession } from "#/features/auth/require-session";
 import { useIndexSheetDocument } from "#/features/editor/use-document-editor";
 import { useUnsavedWarning } from "#/features/editor/use-unsaved-warning";
 import { IndexSheetEditor } from "#/features/index-sheet/index-sheet-editor";
 import type { IndexSheetData } from "#/orpc/schemas/document";
 
 export const Route = createFileRoute("/_auth/index-sheet/$id")({
+	beforeLoad: ({ location }) => requireSession(location.href),
 	component: EditIndexSheet,
 });
 
