@@ -64,6 +64,7 @@ export type AdminDashboardProps = {
 	pending: boolean;
 	message: Message;
 	onPage: (kind: PageKind, page: number) => void;
+	onUsagePage: (kind: "date" | "user", page: number) => void;
 	onRole: (user: AdminUser, role: "user" | "admin") => void;
 	onDeleteDocument: (id: string) => void;
 	onSavePreset: (input: PresetInput, id?: string) => void;
@@ -87,7 +88,7 @@ export function AdminDashboardView(p: AdminDashboardProps) {
 				pending={p.pending}
 				bootstrapEmail={p.bootstrapEmail}
 			/>
-			<UsagePanel data={p.usage} />
+			<UsagePanel data={p.usage} onPage={p.onUsagePage} pending={p.pending} />
 			<DataPanel
 				summary={p.summary}
 				data={p.documents}

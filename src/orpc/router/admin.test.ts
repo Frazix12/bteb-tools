@@ -149,6 +149,21 @@ describe("admin procedures", () => {
 		expect(repo.setPresetEnabled).toHaveBeenCalledWith(id, false, "admin");
 	});
 
+	test("describes bootstrap-account demotion failures accurately", async () => {
+		getSessionMock.mockResolvedValue({
+			session: { id: "s" },
+			user: { id: "admin", role: "admin" },
+		});
+		const repo = repository();
+		repo.setUserRole.mockRejectedValue(new InvalidRoleTransitionError());
+		await expect(
+			makeClient(repo).users.setRole({ userId: "bootstrap", role: "user" }),
+		).rejects.toMatchObject({
+			code: "FORBIDDEN",
+			message: "The protected bootstrap account cannot be demoted.",
+		});
+	});
+
 	test("maps repository errors and rejects bad input before persistence", async () => {
 		getSessionMock.mockResolvedValue({
 			session: { id: "s" },

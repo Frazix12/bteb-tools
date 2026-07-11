@@ -40,9 +40,10 @@ export const Route = createFileRoute("/_auth/admin")({
 function AdminPage() {
 	const q = useQueryClient();
 	const [pages, setPages] = useState({ users: 1, documents: 1, presets: 1 });
+	const [usagePages, setUsagePages] = useState({ date: 1, user: 1 });
 	const [message, setMessage] = useState<Message>(null);
 	const users = useQuery(adminUsersOptions(pages.users)),
-		usage = useQuery(adminUsageOptions()),
+		usage = useQuery(adminUsageOptions(usagePages.date, usagePages.user)),
 		summary = useQuery(adminSummaryOptions()),
 		documents = useQuery(adminDocumentsOptions(pages.documents)),
 		presets = useQuery(adminPresetsOptions(pages.presets));
@@ -100,6 +101,9 @@ function AdminPage() {
 			message={message}
 			onPage={(kind: string, page: number) =>
 				setPages((x) => ({ ...x, [kind]: page }))
+			}
+			onUsagePage={(kind, page) =>
+				setUsagePages((x) => ({ ...x, [kind]: page }))
 			}
 			onRole={(u, role) =>
 				mutation.mutate({ kind: "role", input: { userId: u.id, role } })

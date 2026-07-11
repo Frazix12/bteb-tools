@@ -2,8 +2,10 @@ import type { QueryClient } from "@tanstack/react-query";
 import { orpc } from "#/orpc/client";
 export const adminUsersOptions = (page = 1) =>
 	orpc.admin.users.list.queryOptions({ input: { page, pageSize: 20 } });
-export const adminUsageOptions = () =>
-	orpc.admin.usage.summary.queryOptions({ input: { page: 1, pageSize: 20 } });
+export const adminUsageOptions = (datePage = 1, userPage = 1) =>
+	orpc.admin.usage.summary.queryOptions({
+		input: { datePage, userPage, pageSize: 20 },
+	});
 export const adminSummaryOptions = () =>
 	orpc.admin.data.summary.queryOptions({ input: {} });
 export const adminDocumentsOptions = (page = 1) =>

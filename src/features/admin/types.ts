@@ -49,7 +49,14 @@ export type Usage = {
 		outputTokens: number | string | null;
 		costMicros: number | string | null;
 	};
-	byModel: unknown[];
+	byModel: {
+		provider: string;
+		model: string;
+		events: number | string;
+		inputTokens: number | string | null;
+		outputTokens: number | string | null;
+		costMicros: number | string | null;
+	}[];
 	byDate: {
 		date: string;
 		events: number | string;
@@ -67,6 +74,11 @@ export type Usage = {
 		events: number | string;
 		costMicros: number | string | null;
 	}[];
+	datePage: number;
+	userPage: number;
+	pageSize: number;
+	dateTotal: number;
+	userTotal: number;
 };
 export type Summary = {
 	users: number;

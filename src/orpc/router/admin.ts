@@ -51,7 +51,7 @@ function mapped(error: unknown): never {
 		throw new ORPCError("NOT_FOUND", { message: "Admin target not found." });
 	if (error instanceof InvalidRoleTransitionError)
 		throw new ORPCError("FORBIDDEN", {
-			message: "You cannot demote your own admin account.",
+			message: "The protected bootstrap account cannot be demoted.",
 		});
 	throw error;
 }
@@ -85,7 +85,8 @@ export function createAdminRouter(repository: AdminRepository) {
 			summary: adminProcedure
 				.input(
 					z.object({
-						page: z.number().int().min(1).default(1),
+						datePage: z.number().int().min(1).default(1),
+						userPage: z.number().int().min(1).default(1),
 						pageSize: z.number().int().min(1).max(100).default(20),
 						from: z.coerce.date().optional(),
 						to: z.coerce.date().optional(),

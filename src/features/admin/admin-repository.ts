@@ -2,6 +2,7 @@ import {
 	and,
 	asc,
 	count,
+	countDistinct,
 	desc,
 	eq,
 	gte,
@@ -27,7 +28,13 @@ export class InvalidRoleTransitionError extends Error {
 }
 
 export type PageInput = { page: number; pageSize: number };
-export type UsageInput = PageInput & { from?: Date; to?: Date };
+export type UsageInput = {
+	datePage: number;
+	userPage: number;
+	pageSize: number;
+	from?: Date;
+	to?: Date;
+};
 export type PresetWrite = {
 	slug: string;
 	title: string;
@@ -169,7 +176,7 @@ export const drizzleAdminRepository: AdminRepository = {
 			return row;
 		});
 	},
-	async usageSummary(input = { page: 1, pageSize: 20 }) {
+	async usageSummary(input = { datePage: 1, userPage: 1, pageSize: 20 }) {
 		const conditions = [
 			input.from ? gte(aiUsageEvent.createdAt, input.from) : undefined,
 			input.to ? lte(aiUsageEvent.createdAt, input.to) : undefined,
@@ -198,7 +205,7 @@ export const drizzleAdminRepository: AdminRepository = {
 			.groupBy(aiUsageEvent.provider, aiUsageEvent.model)
 			.orderBy(asc(aiUsageEvent.provider), asc(aiUsageEvent.model));
 		const day = sql<string>`date(${aiUsageEvent.createdAt})`;
-		const [byDate, byUser, byOutcome] = await Promise.all([
+		const [byDate, byUser, byOutcome, [breakdownTotals]] = await Promise.all([
 			db
 				.select({
 					date: day,
@@ -210,7 +217,7 @@ export const drizzleAdminRepository: AdminRepository = {
 				.groupBy(day)
 				.orderBy(desc(day))
 				.limit(input.pageSize)
-				.offset(offset(input)),
+				.offset((input.datePage - 1) * input.pageSize),
 			db
 				.select({
 					ownerId: user.id,
@@ -227,7 +234,7 @@ export const drizzleAdminRepository: AdminRepository = {
 				.groupBy(user.id)
 				.orderBy(desc(count()))
 				.limit(input.pageSize)
-				.offset(offset(input)),
+				.offset((input.userPage - 1) * input.pageSize),
 			db
 				.select({
 					outcome: aiUsageEvent.outcome,
@@ -239,6 +246,13 @@ export const drizzleAdminRepository: AdminRepository = {
 				.groupBy(aiUsageEvent.outcome)
 				.orderBy(asc(aiUsageEvent.outcome))
 				.limit(20),
+			db
+				.select({
+					dates: countDistinct(day),
+					users: countDistinct(aiUsageEvent.ownerId),
+				})
+				.from(aiUsageEvent)
+				.where(where),
 		]);
 		return {
 			totals: totals[0],
@@ -246,8 +260,11 @@ export const drizzleAdminRepository: AdminRepository = {
 			byDate,
 			byUser,
 			byOutcome,
-			page: input.page,
+			datePage: input.datePage,
+			userPage: input.userPage,
 			pageSize: input.pageSize,
+			dateTotal: breakdownTotals.dates,
+			userTotal: breakdownTotals.users,
 		};
 	},
 	async dataSummary() {

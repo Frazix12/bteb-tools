@@ -41,7 +41,16 @@ const props = {
 			outputTokens: 50,
 			costMicros: 12500,
 		},
-		byModel: [],
+		byModel: [
+			{
+				provider: "google",
+				model: "gemini-test",
+				events: 3,
+				inputTokens: null,
+				outputTokens: 50,
+				costMicros: 12500,
+			},
+		],
 		byDate: [{ date: "2026-07-11", events: 3, costMicros: 12500 }],
 		byUser: [
 			{
@@ -53,6 +62,11 @@ const props = {
 			},
 		],
 		byOutcome: [{ outcome: "success", events: 3, costMicros: 12500 }],
+		datePage: 1,
+		userPage: 1,
+		pageSize: 20,
+		dateTotal: 21,
+		userTotal: 21,
 	},
 	summary: {
 		users: 21,
@@ -93,6 +107,7 @@ const props = {
 		pageSize: 20,
 	},
 	onPage: vi.fn(),
+	onUsagePage: vi.fn(),
 	onRole: vi.fn(),
 	onDeleteDocument: vi.fn(),
 	onSavePreset: vi.fn(),
@@ -111,6 +126,15 @@ describe("admin dashboard", () => {
 			expect(screen.getByRole("heading", { name })).toBeTruthy();
 		expect(screen.getAllByText("Estimated cost").length).toBeGreaterThan(0);
 		expect(screen.getAllByText("$0.0125").length).toBeGreaterThan(0);
+		expect(screen.getByText(/google \/ gemini-test/).textContent).toContain(
+			"Unknown input",
+		);
+		expect(screen.getByText("Date page 1 of 2 · 21 dates")).toBeTruthy();
+		expect(screen.getByText("User page 1 of 2 · 21 users")).toBeTruthy();
+		fireEvent.click(screen.getByRole("button", { name: "Next date page" }));
+		fireEvent.click(screen.getByRole("button", { name: "Next user page" }));
+		expect(props.onUsagePage).toHaveBeenCalledWith("date", 2);
+		expect(props.onUsagePage).toHaveBeenCalledWith("user", 2);
 		expect(
 			screen.getAllByRole("button", { name: "Next page" }).length,
 		).toBeGreaterThan(0);
