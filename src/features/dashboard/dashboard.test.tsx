@@ -67,6 +67,7 @@ describe("dashboard", () => {
 		const { rerender } = render(<DashboardView {...baseProps} />);
 		expect(screen.getByRole("link", { name: "New Index Sheet" })).toBeTruthy();
 		expect(screen.getByRole("link", { name: "New Cover Page" })).toBeTruthy();
+		expect(screen.queryByRole("link", { name: "Browse Presets" })).toBeNull();
 
 		rerender(<DashboardView {...baseProps} documents={[]} />);
 		expect(screen.getByText("No saved documents yet")).toBeTruthy();

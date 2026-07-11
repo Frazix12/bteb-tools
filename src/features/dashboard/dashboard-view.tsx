@@ -1,4 +1,4 @@
-import { FilePlus2, FolderOpen, RefreshCw, Sparkles } from "lucide-react";
+import { FilePlus2, FolderOpen, RefreshCw } from "lucide-react";
 import { Button } from "#/components/ui/button";
 import {
 	Card,
@@ -35,12 +35,6 @@ function NewDocumentActions() {
 				<a href="/cover-page/new">
 					<FilePlus2 aria-hidden="true" />
 					New Cover Page
-				</a>
-			</Button>
-			<Button asChild variant="outline">
-				<a href="/presets">
-					<Sparkles aria-hidden="true" />
-					Browse Presets
 				</a>
 			</Button>
 		</div>
