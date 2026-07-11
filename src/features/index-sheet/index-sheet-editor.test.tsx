@@ -17,7 +17,9 @@ vi.mock("#/features/auth/sign-in-action", () => ({
 	}: {
 		children: React.ReactNode;
 		redirect: string;
-	}) => <a href={`/login?redirect=${redirect}`}>{children}</a>,
+	}) => (
+		<a href={`/login?redirect=${encodeURIComponent(redirect)}`}>{children}</a>
+	),
 }));
 
 import { createBlankIndexSheet } from "./defaults";
@@ -50,16 +52,24 @@ describe("index sheet editor", () => {
 		renderEditor({
 			canSave: false,
 			canUseAi: false,
-			signInRedirect: "/index-sheet/new",
+			signInRedirect: "/index-sheet/new?preset=lab-index",
 			onSave,
 		});
 		expect(
 			screen.getByRole("button", { name: /print or save as pdf/i }),
 		).toBeTruthy();
-		expect(screen.getByRole("link", { name: /sign in to save/i })).toBeTruthy();
+		const expectedHref =
+			"/login?redirect=%2Findex-sheet%2Fnew%3Fpreset%3Dlab-index";
 		expect(
-			screen.getByRole("link", { name: /sign in to use ai/i }),
-		).toBeTruthy();
+			screen
+				.getByRole("link", { name: /sign in to save/i })
+				.getAttribute("href"),
+		).toBe(expectedHref);
+		expect(
+			screen
+				.getByRole("link", { name: /sign in to use ai/i })
+				.getAttribute("href"),
+		).toBe(expectedHref);
 		expect(onSave).not.toHaveBeenCalled();
 	});
 	test("applies reviewed autofill to the dirty draft without saving", async () => {

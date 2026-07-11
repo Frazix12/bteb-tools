@@ -3,36 +3,58 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, test, vi } from "vitest";
 
-const queryState = vi.hoisted(() => ({ current: {} as any }));
+const {
+	queryState,
+	routeState,
+	locationState,
+	coverEditorProps,
+	indexEditorProps,
+} = vi.hoisted(() => ({
+	queryState: { current: {} as any },
+	routeState: { user: null as null | { id: string } },
+	locationState: { href: "/current" },
+	coverEditorProps: vi.fn(),
+	indexEditorProps: vi.fn(),
+}));
 
 vi.mock("@tanstack/react-query", () => ({
 	useQuery: () => queryState.current,
 }));
 
 vi.mock("@tanstack/react-router", () => ({
-	Link: ({ children, to, search }: any) => (
-		<a href={`${to}?preset=${search?.preset ?? ""}`}>{children}</a>
-	),
+	Link: ({ children, to, search }: any) => {
+		const supplied = Object.entries(search ?? {}).filter(
+			([, value]) => value !== undefined,
+		);
+		const query = new URLSearchParams(
+			supplied as [string, string][],
+		).toString();
+		return <a href={query ? `${to}?${query}` : to}>{children}</a>;
+	},
 	createFileRoute: () => (options: any) => ({
 		...options,
 		useSearch: vi.fn(),
-		useRouteContext: vi.fn(() => ({ user: null })),
+		useRouteContext: vi.fn(() => ({ user: routeState.user })),
 	}),
-	useLocation: vi.fn(() => ({ href: "/current" })),
+	useLocation: vi.fn(() => ({ href: locationState.href })),
 }));
 
 vi.mock("#/features/cover-page/cover-page-editor", () => ({
-	CoverPageEditor: ({ initialData }: any) => {
+	CoverPageEditor: (props: any) => {
+		coverEditorProps(props);
 		return (
 			<input
 				aria-label="Institute name"
-				defaultValue={initialData.instituteName}
+				defaultValue={props.initialData.instituteName}
 			/>
 		);
 	},
 }));
 vi.mock("#/features/index-sheet/index-sheet-editor", () => ({
-	IndexSheetEditor: ({ initialData }: any) => <p>{initialData.subjectName}</p>,
+	IndexSheetEditor: (props: any) => {
+		indexEditorProps(props);
+		return <p>{props.initialData.subjectName}</p>;
+	},
 }));
 vi.mock("#/features/editor/use-document-editor", () => ({
 	useCoverPageDocument: () => ({ isSaving: false, save: vi.fn() }),
@@ -58,7 +80,13 @@ import {
 } from "#/routes/_auth/index-sheet/new";
 import { PresetCards, PresetsPage } from "#/routes/_auth/presets";
 
-afterEach(cleanup);
+afterEach(() => {
+	cleanup();
+	routeState.user = null;
+	locationState.href = "/current";
+	coverEditorProps.mockClear();
+	indexEditorProps.mockClear();
+});
 
 describe("database-backed preset pages", () => {
 	test("uses guest-safe instructions and sign-in navigation", () => {
@@ -67,7 +95,52 @@ describe("database-backed preset pages", () => {
 		expect(screen.getByText(/then print or save as PDF/i)).toBeTruthy();
 		expect(
 			screen.getByRole("link", { name: /sign in/i }).getAttribute("href"),
-		).toBe("/login?preset=");
+		).toBe("/login");
+	});
+
+	test.each([
+		{
+			name: "cover page",
+			Route: CoverRoute,
+			Component: NewCoverPage,
+			propsSpy: coverEditorProps,
+			href: "/cover-page/new?preset=cover",
+		},
+		{
+			name: "index sheet",
+			Route: IndexRoute,
+			Component: NewIndexSheet,
+			propsSpy: indexEditorProps,
+			href: "/index-sheet/new?preset=index",
+		},
+	])("maps route authentication and the exact location for the $name editor", ({
+		Route,
+		Component,
+		propsSpy,
+		href,
+	}) => {
+		vi.mocked(Route.useSearch).mockReturnValue({});
+		queryState.current = { isPending: false, isError: false };
+		locationState.href = href;
+		routeState.user = null;
+		const view = render(<Component />);
+		expect(propsSpy).toHaveBeenLastCalledWith(
+			expect.objectContaining({
+				canSave: false,
+				canUseAi: false,
+				signInRedirect: href,
+			}),
+		);
+
+		routeState.user = { id: "user-1" };
+		view.rerender(<Component />);
+		expect(propsSpy).toHaveBeenLastCalledWith(
+			expect.objectContaining({
+				canSave: true,
+				canUseAi: true,
+				signInRedirect: href,
+			}),
+		);
 	});
 	test("renders every enabled server row with an icon-labelled action", () => {
 		render(
