@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
-import { createFileRoute, useRouteContext } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { BOOTSTRAP_ADMIN_EMAIL_DEFAULT } from "#/config/bootstrap-admin";
+import { getBootstrapAdminEmail } from "#/config/bootstrap-admin";
 import {
 	AdminMessage,
 	AdminPageError,
@@ -21,10 +21,9 @@ export const Route = createFileRoute("/_auth/admin/users")({
 	component: UsersRoute,
 });
 
-function UsersRoute() {
+export function UsersRoute() {
 	const [page, setPage] = useState(1);
 	const query = useQuery(adminUsersOptions(page));
-	const { user } = useRouteContext({ from: "/_auth/admin" });
 	const action = useAdminMutation({
 		mutationFn: (input: { userId: string; role: "user" | "admin" }) =>
 			orpc.admin.users.setRole.call(input),
@@ -51,7 +50,7 @@ function UsersRoute() {
 				<UsersPanel
 					data={query.data}
 					pending={action.isPending}
-					bootstrapEmail={user.email || BOOTSTRAP_ADMIN_EMAIL_DEFAULT}
+					bootstrapEmail={getBootstrapAdminEmail()}
 					onPage={(_, next) => setPage(next)}
 					onRole={(target, role) => action.mutate({ userId: target.id, role })}
 				/>

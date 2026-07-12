@@ -11,6 +11,10 @@ Implemented the Users, Usage, and Documents admin routes with route-owned pagina
 - `bun run test src/features/admin/admin-dashboard.test.tsx src/orpc/router/admin.test.ts` — 16 tests pass
 - `bun x tsc --noEmit` — pass
 
+Fresh final run after renaming the route test:
+
+- `bun run generate-routes && bun run test src/features/admin/admin-dashboard.test.tsx src/features/admin/admin-queries.test.ts src/features/admin/use-admin-mutation.test.tsx src/routes/_auth/admin/-users.test.tsx src/orpc/router/admin.test.ts && bun run check && bun x tsc --noEmit` — pass; 5 test files and 18 tests passed, Biome checked 187 files, TypeScript exited successfully.
+
 ## Self-review
 
 - Users fetches only the users list and invalidates users plus summary after a role change.
@@ -21,4 +25,11 @@ Implemented the Users, Usage, and Documents admin routes with route-owned pagina
 
 ## Concern
 
-The existing `admin-dashboard.test.tsx` remains an aggregate panel test rather than being fully replaced with route-level query mocks. Its retained behavior assertions pass, but explicit proof that the Users route does not request unrelated endpoints is not present in this commit.
+Resolved: the aggregate dashboard tests were replaced by focused Users, Usage, and Documents panel tests. A Users route test proves that only `adminUsersOptions` is requested and verifies route-owned pagination, role mutation, and configured bootstrap-email semantics. Targeted invalidators and the shared mutation hook now have focused coverage.
+
+## Review-fix verification
+
+- `bun run generate-routes` — pass (route test subsequently renamed with the `-` ignore prefix to remove the non-route warning)
+- `bun run test src/features/admin/admin-dashboard.test.tsx src/features/admin/admin-queries.test.ts src/features/admin/use-admin-mutation.test.tsx src/routes/_auth/admin/users.test.tsx src/orpc/router/admin.test.ts` — 5 files, 18 tests passed (route test subsequently renamed to `src/routes/_auth/admin/-users.test.tsx`)
+- `bun run check` — 187 files checked, pass
+- `bun x tsc --noEmit` — pass
