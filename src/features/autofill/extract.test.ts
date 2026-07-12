@@ -100,6 +100,43 @@ describe("autofill extraction", () => {
 		expect(execute).toHaveBeenCalledTimes(1);
 	});
 
+	test("sanitizes frozen provider errors without mutating them", async () => {
+		const upstream = Object.freeze(
+			Object.assign(new Error("private frozen upstream response"), {
+				code: "SCHEMA_ERROR",
+			}),
+		);
+		let observed: unknown;
+		const generate = createGeminiAutofillGenerator({
+			pool: {
+				run: async <T>(execute: (apiKey: string) => Promise<T>) => {
+					try {
+						return await execute("managed-secret");
+					} catch (error) {
+						observed = error;
+						throw error;
+					}
+				},
+			},
+			model: "gemini-test",
+			createAdapter: (_model, apiKey) => apiKey,
+			runChat: async () => {
+				throw upstream;
+			},
+		});
+
+		await expect(generate(request)).rejects.toMatchObject({
+			message: "AI extraction is temporarily unavailable.",
+			usage: {
+				provider: "google",
+				model: "gemini-test",
+				inputTokens: null,
+				outputTokens: null,
+			},
+		});
+		expect(observed).toBe(upstream);
+	});
+
 	test("preserves sanitized last-attempt usage after managed and fallback exhaustion", async () => {
 		const runChat = vi.fn(async (_adapter, _request, onUsage) => {
 			onUsage(31, 9);

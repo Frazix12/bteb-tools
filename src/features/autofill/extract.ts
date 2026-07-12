@@ -260,9 +260,11 @@ export function createGeminiAutofillGenerator({
 					outputTokens,
 				} as const;
 				failedAttemptUsage.set(error, usage);
-				Object.defineProperty(error, geminiSafeFailureMetadata, {
-					value: usage,
-				});
+				if (Object.isExtensible(error)) {
+					Object.defineProperty(error, geminiSafeFailureMetadata, {
+						value: usage,
+					});
+				}
 			}
 			throw error;
 		}
