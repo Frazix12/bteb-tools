@@ -1,7 +1,7 @@
 import { Shield, Users } from "lucide-react";
 import { Button } from "#/components/ui/button";
-import { Confirm } from "./admin-dashboard";
 import { AdminPanel, tableClass } from "./admin-ui";
+import { Confirm } from "./confirm";
 import type { AdminUser, Page, PageKind } from "./types";
 
 type Props = {

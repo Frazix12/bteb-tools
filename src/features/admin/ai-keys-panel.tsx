@@ -2,8 +2,8 @@ import { KeyRound } from "lucide-react";
 import { useState } from "react";
 import { Button } from "#/components/ui/button";
 import { Input } from "#/components/ui/input";
-import { Confirm } from "./admin-dashboard";
 import { AdminPanel, tableClass } from "./admin-ui";
+import { Confirm } from "./confirm";
 import type { AdminAiKey } from "./types";
 
 type Props = {

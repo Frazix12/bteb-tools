@@ -306,12 +306,14 @@ a {
 }
 
 .nav-link:hover,
-.nav-link.is-active {
+.nav-link.is-active,
+.nav-link[aria-current='page'] {
   color: var(--sea-ink);
 }
 
 .nav-link:hover::after,
-.nav-link.is-active::after {
+.nav-link.is-active::after,
+.nav-link[aria-current='page']::after {
   transform: scaleX(1);
 }
 

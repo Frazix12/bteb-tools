@@ -27,7 +27,10 @@ export function AppShell() {
 				className="border-b border-[var(--line)] bg-[var(--header-bg)] backdrop-blur-lg"
 				data-print-hidden
 			>
-				<nav className="page-wrap grid grid-cols-[1fr_auto] items-center gap-3 py-3 md:grid-cols-[1fr_auto_1fr]">
+				<nav
+					aria-label="Primary navigation"
+					className="page-wrap grid min-h-16 grid-cols-[1fr_auto] items-center gap-2 py-2 md:grid-cols-[1fr_auto_1fr] md:gap-4"
+				>
 					<Link
 						className="inline-flex items-center gap-2 font-semibold text-[var(--sea-ink)] no-underline"
 						to={user ? "/dashboard" : "/presets"}
@@ -41,21 +44,39 @@ export function AppShell() {
 					>
 						{user && (
 							<Button asChild variant="ghost">
-								<Link to="/dashboard">
+								<Link
+									activeProps={{
+										"aria-current": "page",
+										className: "is-active",
+									}}
+									className="nav-link"
+									to="/dashboard"
+								>
 									<House aria-hidden="true" />
 									Home
 								</Link>
 							</Button>
 						)}
 						<Button asChild variant="ghost">
-							<Link to="/presets">
+							<Link
+								activeProps={{ "aria-current": "page", className: "is-active" }}
+								className="nav-link"
+								to="/presets"
+							>
 								<Settings aria-hidden="true" />
 								Browse Presets
 							</Link>
 						</Button>
 						{user?.role === "admin" && (
 							<Button asChild variant="ghost">
-								<Link to="/admin">
+								<Link
+									activeProps={{
+										"aria-current": "page",
+										className: "is-active",
+									}}
+									className="nav-link"
+									to="/admin"
+								>
 									<Shield aria-hidden="true" />
 									Admin
 								</Link>

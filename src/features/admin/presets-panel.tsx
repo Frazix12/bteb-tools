@@ -8,8 +8,8 @@ import {
 	CoverPageDataSchema,
 	IndexSheetDataSchema,
 } from "#/orpc/schemas/document";
-import { Confirm } from "./admin-dashboard";
 import { AdminPanel, tableClass } from "./admin-ui";
+import { Confirm } from "./confirm";
 import type {
 	AdminPreset,
 	Message,

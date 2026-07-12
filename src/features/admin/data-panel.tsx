@@ -1,7 +1,7 @@
 import { Database, Trash2 } from "lucide-react";
 import { Button } from "#/components/ui/button";
-import { Confirm } from "./admin-dashboard";
 import { AdminPanel, AdminStat, tableClass } from "./admin-ui";
+import { Confirm } from "./confirm";
 import type { AdminDocument, Page, PageKind, Summary } from "./types";
 
 type Props = {

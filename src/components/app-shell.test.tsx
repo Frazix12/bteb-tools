@@ -7,8 +7,18 @@ let role: "user" | "admin" = "user";
 let pathname = "/dashboard";
 
 vi.mock("@tanstack/react-router", () => ({
-	Link: ({ children, to }: { children: React.ReactNode; to: string }) => (
-		<a href={to}>{children}</a>
+	Link: ({
+		children,
+		to,
+		activeProps,
+	}: {
+		children: React.ReactNode;
+		to: string;
+		activeProps?: React.AnchorHTMLAttributes<HTMLAnchorElement>;
+	}) => (
+		<a href={to} {...(pathname === to ? activeProps : undefined)}>
+			{children}
+		</a>
 	),
 	Outlet: () => null,
 	useNavigate: () => vi.fn(),
@@ -27,9 +37,21 @@ vi.mock("@tanstack/react-router", () => ({
 	useLocation: () => ({ pathname }),
 }));
 
+vi.mock("#/features/theme/theme-toggle", () => ({
+	ThemeToggle: () => (
+		<fieldset>
+			<legend>Theme</legend>
+		</fieldset>
+	),
+}));
+
 import { AppShell } from "./app-shell";
 
-afterEach(cleanup);
+afterEach(() => {
+	cleanup();
+	pathname = "/dashboard";
+	role = "user";
+});
 
 describe("app shell navigation", () => {
 	test("shows standard navigation but hides admin from users", () => {
@@ -42,6 +64,19 @@ describe("app shell navigation", () => {
 		expect(screen.queryByRole("link", { name: "Admin" })).toBeNull();
 	});
 
+	test("marks the current destination as active", () => {
+		pathname = "/presets";
+		render(<AppShell />);
+		expect(
+			screen
+				.getByRole("link", { name: "Browse Presets" })
+				.getAttribute("aria-current"),
+		).toBe("page");
+		expect(
+			screen.getByRole("link", { name: "Home" }).hasAttribute("aria-current"),
+		).toBe(false);
+	});
+
 	test("opens an accessible profile menu with identity and red logout action", () => {
 		role = "user";
 		render(<AppShell />);
@@ -51,6 +86,7 @@ describe("app shell navigation", () => {
 		);
 		expect(screen.getByText("Irfan")).toBeTruthy();
 		expect(screen.getByText("frazixgaming22@gmail.com")).toBeTruthy();
+		expect(screen.getByRole("group", { name: "Theme" })).toBeTruthy();
 		const logout = screen.getByRole("menuitem", { name: "Log out" });
 		expect(logout.className).toContain("text-destructive");
 	});

@@ -1,6 +1,7 @@
 import { LogOut, UserRound } from "lucide-react";
 import { DropdownMenu } from "radix-ui";
 import { Button } from "#/components/ui/button";
+import { ThemeToggle } from "#/features/theme/theme-toggle";
 
 export function UserMenu({
 	user,
@@ -39,6 +40,10 @@ export function UserMenu({
 						<p className="truncate text-sm text-muted-foreground">
 							{user.email}
 						</p>
+					</div>
+					<DropdownMenu.Separator className="my-1 h-px bg-[var(--line)]" />
+					<div className="px-2 py-2">
+						<ThemeToggle />
 					</div>
 					<DropdownMenu.Separator className="my-1 h-px bg-[var(--line)]" />
 					<DropdownMenu.Item
