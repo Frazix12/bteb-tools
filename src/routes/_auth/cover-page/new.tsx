@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useLocation } from "@tanstack/react-router";
 import {
 	FileQuestion,
 	LoaderCircle,
@@ -24,6 +24,8 @@ export const Route = createFileRoute("/_auth/cover-page/new")({
 
 export function NewCoverPage() {
 	const { preset } = Route.useSearch();
+	const { user } = Route.useRouteContext();
+	const location = useLocation();
 	const query = useQuery({
 		...presetQueryOptions(preset ?? "", "cover_page"),
 		enabled: Boolean(preset),
@@ -59,6 +61,8 @@ export function NewCoverPage() {
 		);
 	return (
 		<PresetDocumentState
+			isAuthenticated={Boolean(user)}
+			signInRedirect={location.href}
 			preset={preset}
 			data={query.data?.data as CoverPageData | undefined}
 			notFound={Boolean(
@@ -72,10 +76,14 @@ export function PresetDocumentState({
 	preset,
 	data,
 	notFound = false,
+	isAuthenticated = true,
+	signInRedirect,
 }: {
 	preset?: string;
 	data?: CoverPageData;
 	notFound?: boolean;
+	isAuthenticated?: boolean;
+	signInRedirect?: string;
 }) {
 	const editor = useCoverPageDocument();
 	const [isDirty, setIsDirty] = useState(false);
@@ -104,6 +112,9 @@ export function PresetDocumentState({
 			key={preset ?? "blank"}
 			initialData={data ?? createBlankCoverPage()}
 			isSaving={editor.isSaving}
+			canSave={isAuthenticated}
+			canUseAi={isAuthenticated}
+			signInRedirect={signInRedirect}
 			onDirtyChange={setIsDirty}
 			onSave={editor.save}
 		/>

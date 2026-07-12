@@ -12,6 +12,7 @@ import {
 	CardHeader,
 	CardTitle,
 } from "#/components/ui/card";
+import { SignInAction } from "#/features/auth/sign-in-action";
 import { AutofillDialog } from "#/features/autofill/autofill-dialog";
 import { autofillExtractMutationOptions } from "#/features/autofill/queries";
 import type { IndexSheetData } from "#/orpc/schemas/document";
@@ -32,6 +33,9 @@ interface Props {
 	isSaving?: boolean;
 	onDirtyChange?: (dirty: boolean) => void;
 	onSave: (data: IndexSheetData) => Promise<unknown>;
+	canSave?: boolean;
+	canUseAi?: boolean;
+	signInRedirect?: string;
 }
 
 export function IndexSheetEditor({
@@ -39,6 +43,9 @@ export function IndexSheetEditor({
 	isSaving = false,
 	onDirtyChange,
 	onSave,
+	canSave = true,
+	canUseAi = true,
+	signInRedirect,
 }: Props) {
 	const form = useForm({ defaultValues: initialData });
 	const autofill = useMutation(autofillExtractMutationOptions());
@@ -144,15 +151,24 @@ export function IndexSheetEditor({
 							<AutofillDialog
 								type="index_sheet"
 								current={data}
+								canUseAi={canUseAi}
+								signInRedirect={signInRedirect}
 								onExtract={(text) =>
 									autofill.mutateAsync({ type: "index_sheet", text })
 								}
 								onApply={changeData}
 							/>
-							<Button disabled={isSaving} onClick={() => void save()}>
-								<Save />
-								{isSaving ? "Saving…" : "Save sheet"}
-							</Button>
+							{canSave ? (
+								<Button disabled={isSaving} onClick={() => void save()}>
+									<Save />
+									{isSaving ? "Saving…" : "Save sheet"}
+								</Button>
+							) : (
+								<SignInAction redirect={signInRedirect ?? "/presets"}>
+									<Save />
+									Sign in to save
+								</SignInAction>
+							)}
 							<Button variant="outline" onClick={() => window.print()}>
 								<Printer />
 								Print or save as PDF

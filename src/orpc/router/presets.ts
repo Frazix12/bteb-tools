@@ -5,7 +5,7 @@ import {
 	drizzlePresetRepository,
 	type PresetRepository,
 } from "#/features/presets/preset-repository";
-import { protectedProcedure } from "#/orpc/middleware/auth";
+import { publicProcedure } from "#/orpc/context";
 import {
 	CoverPageDataSchema,
 	DocumentTypeSchema,
@@ -13,10 +13,10 @@ import {
 } from "#/orpc/schemas/document";
 
 export function createPresetRouter(repository: PresetRepository) {
-	const list = protectedProcedure
+	const list = publicProcedure
 		.input(z.object({}))
 		.handler(() => repository.listEnabled());
-	const getEnabled = protectedProcedure
+	const getEnabled = publicProcedure
 		.input(
 			z.object({ slug: z.string().trim().min(1), type: DocumentTypeSchema }),
 		)

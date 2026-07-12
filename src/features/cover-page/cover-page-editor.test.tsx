@@ -10,6 +10,17 @@ vi.mock("#/features/autofill/queries", () => ({
 		mutationFn: extractMutation,
 	}),
 }));
+vi.mock("#/features/auth/sign-in-action", () => ({
+	SignInAction: ({
+		children,
+		redirect,
+	}: {
+		children: React.ReactNode;
+		redirect: string;
+	}) => (
+		<a href={`/login?redirect=${encodeURIComponent(redirect)}`}>{children}</a>
+	),
+}));
 
 import { CoverPageEditor } from "./cover-page-editor";
 import { createBlankCoverPage } from "./defaults";
@@ -36,6 +47,31 @@ const renderEditor = (overrides = {}) => {
 };
 
 describe("cover page editor", () => {
+	test("keeps print available but gates save and AI for guests", () => {
+		const onSave = vi.fn();
+		renderEditor({
+			canSave: false,
+			canUseAi: false,
+			signInRedirect: "/cover-page/new?preset=department-cover",
+			onSave,
+		});
+		expect(
+			screen.getByRole("button", { name: /print or save as pdf/i }),
+		).toBeTruthy();
+		const expectedHref =
+			"/login?redirect=%2Fcover-page%2Fnew%3Fpreset%3Ddepartment-cover";
+		expect(
+			screen
+				.getByRole("link", { name: /sign in to save/i })
+				.getAttribute("href"),
+		).toBe(expectedHref);
+		expect(
+			screen
+				.getByRole("link", { name: /sign in to use ai/i })
+				.getAttribute("href"),
+		).toBe(expectedHref);
+		expect(onSave).not.toHaveBeenCalled();
+	});
 	test("applies reviewed autofill to the dirty draft without saving", async () => {
 		extractMutation.mockResolvedValueOnce({
 			type: "cover_page",

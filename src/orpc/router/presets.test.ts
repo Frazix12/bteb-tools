@@ -1,6 +1,7 @@
 import { createRouterClient } from "@orpc/server";
 import { beforeEach, describe, expect, test, vi } from "vitest";
 
+import { createBlankCoverPage } from "#/features/cover-page/defaults";
 import type { PresetRepository } from "#/features/presets/preset-repository";
 
 const { getSessionMock } = vi.hoisted(() => ({ getSessionMock: vi.fn() }));
@@ -22,20 +23,36 @@ function repository(): PresetRepository {
 describe("preset procedures", () => {
 	beforeEach(() => getSessionMock.mockReset());
 
-	test("requires authentication before querying presets", async () => {
+	test("allows anonymous visitors to query enabled presets", async () => {
 		getSessionMock.mockResolvedValue(null);
 		const repo = repository();
+		vi.mocked(repo.listEnabled).mockResolvedValue([]);
 		const client = createRouterClient(createPresetRouter(repo), {
 			context: { headers: new Headers() },
 		});
-		await expect(client.list({})).rejects.toMatchObject({
-			code: "UNAUTHORIZED",
+
+		await expect(client.list({})).resolves.toEqual([]);
+		expect(repo.listEnabled).toHaveBeenCalledOnce();
+	});
+
+	test("allows anonymous visitors to query an enabled preset", async () => {
+		getSessionMock.mockResolvedValue(null);
+		const repo = repository();
+		vi.mocked(repo.findEnabled).mockResolvedValue({
+			slug: "cover",
+			title: "Cover",
+			description: "Cover preset",
+			type: "cover_page",
+			data: createBlankCoverPage(),
+			enabled: true,
 		});
+		const client = createRouterClient(createPresetRouter(repo), {
+			context: { headers: new Headers() },
+		});
+
 		await expect(
-			client.getEnabled({ slug: "x", type: "cover_page" }),
-		).rejects.toMatchObject({ code: "UNAUTHORIZED" });
-		expect(repo.listEnabled).not.toHaveBeenCalled();
-		expect(repo.findEnabled).not.toHaveBeenCalled();
+			client.getEnabled({ slug: "cover", type: "cover_page" }),
+		).resolves.toMatchObject({ slug: "cover", type: "cover_page" });
 	});
 
 	test("maps missing, disabled, or mismatched presets to not found", async () => {

@@ -38,7 +38,8 @@ function typeLabel(type: DocumentType) {
 	return type === "cover_page" ? "Cover page" : "Index sheet";
 }
 
-function PresetsPage() {
+export function PresetsPage() {
+	const { user } = Route.useRouteContext();
 	const query = useQuery(presetListQueryOptions());
 	return (
 		<main className="page-wrap py-10">
@@ -50,14 +51,13 @@ function PresetsPage() {
 					</p>
 					<h1 className="font-serif text-4xl font-bold">Start from a preset</h1>
 					<p className="mt-2 max-w-2xl text-muted-foreground">
-						Choose a preset, edit the details, then save it as your own
-						document.
+						Choose a preset, edit the details, then print or save as PDF.
 					</p>
 				</div>
 				<Button asChild variant="outline">
-					<Link to="/dashboard">
+					<Link to={user ? "/dashboard" : "/login"}>
 						<ArrowLeft />
-						Back to dashboard
+						{user ? "Back to dashboard" : "Sign in"}
 					</Link>
 				</Button>
 			</div>

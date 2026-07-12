@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-
+import { requireSession } from "#/features/auth/require-session";
 import { DashboardView } from "#/features/dashboard/dashboard-view";
 import {
 	documentListOptions,
@@ -9,6 +9,7 @@ import {
 } from "#/features/documents/queries";
 
 export const Route = createFileRoute("/_auth/dashboard")({
+	beforeLoad: ({ location }) => requireSession(location.href),
 	component: Dashboard,
 });
 

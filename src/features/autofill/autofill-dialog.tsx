@@ -13,10 +13,14 @@ import {
 import { Button } from "#/components/ui/button";
 import { Label } from "#/components/ui/label";
 import { Textarea } from "#/components/ui/textarea";
+import { SignInAction } from "#/features/auth/sign-in-action";
 import type { CoverPageData, IndexSheetData } from "#/orpc/schemas/document";
 import type { AutofillResult } from "./extract";
 
-type Props =
+type Props = {
+	canUseAi?: boolean;
+	signInRedirect?: string;
+} & (
 	| {
 			type: "index_sheet";
 			current: IndexSheetData;
@@ -28,7 +32,8 @@ type Props =
 			current: CoverPageData;
 			onExtract: (text: string) => Promise<AutofillResult>;
 			onApply: (data: CoverPageData) => void;
-	  };
+	  }
+);
 
 interface Suggestion {
 	path: string;
@@ -127,6 +132,22 @@ function failureMessage(error: unknown) {
 }
 
 export function AutofillDialog(props: Props) {
+	if (props.canUseAi === false) {
+		return (
+			<SignInAction
+				redirect={props.signInRedirect ?? "/presets"}
+				variant="outline"
+			>
+				<Sparkles />
+				Sign in to use AI
+			</SignInAction>
+		);
+	}
+
+	return <AutofillDialogContent {...props} />;
+}
+
+function AutofillDialogContent(props: Props) {
 	const [open, setOpen] = useState(false);
 	const [text, setText] = useState("");
 	const [pending, setPending] = useState(false);

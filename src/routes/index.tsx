@@ -5,7 +5,7 @@ import { getCurrentSession } from "#/features/auth/current-session";
 export const Route = createFileRoute("/")({
 	beforeLoad: async () => {
 		throw redirect({
-			to: (await getCurrentSession()) ? "/dashboard" : "/login",
+			to: (await getCurrentSession()) ? "/dashboard" : "/presets",
 		});
 	},
 });
