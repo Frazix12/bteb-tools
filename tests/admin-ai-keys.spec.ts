@@ -43,6 +43,8 @@ test("rotates Gemini keys without rendering plaintext credentials", async ({
 		if (operation === "replace") keys = [publicKey()];
 		if (operation === "setEnabled" && keys[0])
 			keys = [{ ...keys[0], enabled: payload?.enabled }];
+		if (operation === "validateAll" && keys[0])
+			keys = [{ ...keys[0], validationStatus: "invalid", enabled: false }];
 		if (operation === "delete") keys = [];
 		await route.fulfill({
 			contentType: "application/json",
@@ -68,6 +70,7 @@ test("rotates Gemini keys without rendering plaintext credentials", async ({
 	await expect(page.getByRole("button", { name: "Enable Primary" })).toBeVisible();
 	await page.getByRole("button", { name: "Enable Primary" }).click();
 	await page.getByRole("button", { name: "Check all keys" }).click();
+	await expect(page.getByText("Invalid", { exact: true })).toBeVisible();
 
 	await page.getByLabel("Replacement key for Primary").fill("replacement-5678");
 	await page.getByRole("button", { name: "Replace Primary" }).click();

@@ -213,6 +213,16 @@ describe("createDrizzleAiKeyRepository", () => {
 			},
 			now,
 		);
+		await repository.recordValidationFailure(
+			"A",
+			{
+				validationStatus: "invalid",
+				enabled: false,
+				failureCode: "INVALID",
+				failureMessage: "Invalid",
+			},
+			now,
+		);
 		expect(updates[0]).toMatchObject({
 			validationStatus: "valid",
 			lastSuccessAt: now,
@@ -221,12 +231,56 @@ describe("createDrizzleAiKeyRepository", () => {
 			lastFailureCode: null,
 			lastFailureMessage: null,
 		});
+		expect(updates[0]).not.toHaveProperty("lastValidatedAt");
 		expect(updates[1]).toMatchObject({
 			validationStatus: "transient_failure",
 			lastFailureAt: now,
 			lastFailureCode: "UNAVAILABLE",
 			lastFailureMessage: "Temporary",
 		});
+		expect(updates[1]).not.toHaveProperty("lastValidatedAt");
+		expect(updates[2]).toMatchObject({
+			validationStatus: "invalid",
+			lastValidatedAt: now,
+			lastFailureAt: now,
+		});
+		expect(updates[2]).not.toHaveProperty("lastUsedAt");
+	});
+
+	test("guards out-of-order success and failure completions by attempt timestamp", async () => {
+		const predicates: SQL[] = [];
+		const database = {
+			update: () => ({
+				set: () => ({
+					where: (predicate: SQL) => {
+						predicates.push(predicate);
+						return { returning: async () => [{ id: "A" }] };
+					},
+				}),
+			}),
+		};
+		const repository = createDrizzleAiKeyRepository(database as never, cipher);
+		const older = new Date("2026-07-11T00:00:00Z");
+		const newer = new Date("2026-07-11T00:01:00Z");
+
+		await repository.recordSuccess("A", older);
+		await repository.recordFailure("A", { failureCode: "OLD" }, older);
+		await repository.recordSuccess("A", newer);
+		await repository.recordFailure("A", { failureCode: "NEW" }, newer);
+
+		for (const [index, predicate] of predicates.entries()) {
+			const query = new PgDialect().sqlToQuery(predicate.getSQL());
+			const attemptAt = index < 2 ? older.toISOString() : newer.toISOString();
+			expect(query.sql).toMatch(
+				/last_success_at.*is null.*last_success_at.*<=/,
+			);
+			expect(query.sql).toMatch(
+				/last_failure_at.*is null.*last_failure_at.*<=/,
+			);
+			expect(query.params.filter((value) => value === attemptAt)).toHaveLength(
+				2,
+			);
+		}
 	});
 
 	test("validation success atomically re-enables and clears failure health", async () => {

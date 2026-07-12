@@ -39,6 +39,7 @@ describe("createGeminiCredentialValidator", () => {
 
 	test("production boundary failure is classified and never marks the key valid", async () => {
 		const recordFailure = vi.fn(async () => undefined);
+		const recordValidationFailure = vi.fn(async () => undefined);
 		const recordValidationSuccess = vi.fn(async () => undefined);
 		const repo = {
 			getForValidation: vi.fn(async () => ({
@@ -46,6 +47,7 @@ describe("createGeminiCredentialValidator", () => {
 				apiKey: "bad-secret",
 			})),
 			recordFailure,
+			recordValidationFailure,
 			recordValidationSuccess,
 			list: vi.fn(async () => [{ id: "key-id", validationStatus: "invalid" }]),
 		};
@@ -70,10 +72,11 @@ describe("createGeminiCredentialValidator", () => {
 
 		expect(repo.getForValidation).toHaveBeenCalledWith("key-id");
 		expect(recordValidationSuccess).not.toHaveBeenCalled();
-		expect(recordFailure).toHaveBeenCalledWith(
+		expect(recordValidationFailure).toHaveBeenCalledWith(
 			"key-id",
 			expect.objectContaining({ validationStatus: "invalid", enabled: false }),
 			new Date("2026-07-12T00:00:00.000Z"),
 		);
+		expect(recordFailure).not.toHaveBeenCalled();
 	});
 });

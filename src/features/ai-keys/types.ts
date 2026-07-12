@@ -47,5 +47,10 @@ export interface AiKeyRepository {
 	selectCandidates(now: Date): Promise<ManagedAiKeyCandidate[]>;
 	recordSuccess(id: string, now: Date): Promise<void>;
 	recordValidationSuccess(id: string, now: Date): Promise<void>;
+	recordValidationFailure(
+		id: string,
+		update: KeyHealthUpdate,
+		now: Date,
+	): Promise<void>;
 	recordFailure(id: string, update: KeyHealthUpdate, now: Date): Promise<void>;
 }

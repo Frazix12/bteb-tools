@@ -63,7 +63,11 @@ export function createGeminiKeyPool(deps: Dependencies): GeminiKeyPool {
 			await deps.repo.recordValidationSuccess(id, checkedAt);
 		} catch (error) {
 			const failure = deps.classifier(error, checkedAt);
-			await deps.repo.recordFailure(id, updateFor(failure), checkedAt);
+			await deps.repo.recordValidationFailure(
+				id,
+				updateFor(failure),
+				checkedAt,
+			);
 		}
 		return publicKey(id);
 	};

@@ -36,6 +36,7 @@ function setup(
 		selectCandidates: vi.fn(async () => candidates),
 		recordSuccess: vi.fn(async () => {}),
 		recordValidationSuccess: vi.fn(async () => {}),
+		recordValidationFailure: vi.fn(async () => {}),
 		recordFailure: vi.fn(async () => {}),
 		getForValidation: vi.fn(async (id: string) =>
 			required(candidates.find((candidate) => candidate.id === id)),
@@ -170,7 +171,7 @@ describe("Gemini key pool", () => {
 		const result = await pool.validateOne("A");
 		expect(JSON.stringify(result)).not.toContain("stored-secret");
 		if (failure)
-			expect(repo.recordFailure).toHaveBeenCalledWith(
+			expect(repo.recordValidationFailure).toHaveBeenCalledWith(
 				"A",
 				expect.objectContaining({
 					enabled: false,
@@ -203,7 +204,14 @@ describe("Gemini key pool", () => {
 			validateCredential,
 			getPublicKey: async (id) => required(keys.get(id)),
 		});
-		await expect(pool.validateAll()).resolves.toHaveLength(8);
+		const results = await pool.validateAll();
+		expect(
+			results.map(({ id, validationStatus }) => ({ id, validationStatus })),
+		).toEqual(
+			candidates.map(({ id }) => ({ id, validationStatus: "unchecked" })),
+		);
+		expect(repo.getForValidation).toHaveBeenCalledTimes(8);
+		expect(repo.recordValidationSuccess).toHaveBeenCalledTimes(8);
 		expect(peak).toBeLessThanOrEqual(3);
 	});
 });

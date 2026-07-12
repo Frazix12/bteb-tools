@@ -32,6 +32,17 @@ const requireCipher = (cipher?: KeyCipher): KeyCipher => {
 	if (!cipher) throw new AiKeyEncryptionNotConfiguredError();
 	return cipher;
 };
+const healthNotNewerThan = (attemptAt: Date) =>
+	and(
+		or(
+			isNull(aiProviderKey.lastSuccessAt),
+			lte(aiProviderKey.lastSuccessAt, attemptAt),
+		),
+		or(
+			isNull(aiProviderKey.lastFailureAt),
+			lte(aiProviderKey.lastFailureAt, attemptAt),
+		),
+	);
 
 const publicSelection = {
 	id: aiProviderKey.id,
@@ -66,6 +77,14 @@ export function createDrizzleAiKeyRepository(
 			.limit(1);
 		if (!row) throw new AiKeyNotFoundError();
 		return toPublic(row);
+	};
+	const ensureExists = async (id: string) => {
+		const [row] = await database
+			.select({ id: aiProviderKey.id })
+			.from(aiProviderKey)
+			.where(eq(aiProviderKey.id, id))
+			.limit(1);
+		if (!row) throw new AiKeyNotFoundError();
 	};
 	const encryptedValues = (input: AiKeyWrite) => {
 		const configured = requireCipher(cipher);
@@ -209,14 +228,13 @@ export function createDrizzleAiKeyRepository(
 					cooldownUntil: null,
 					lastUsedAt: now,
 					lastSuccessAt: now,
-					lastValidatedAt: now,
 					lastFailureAt: null,
 					lastFailureCode: null,
 					lastFailureMessage: null,
 				})
-				.where(eq(aiProviderKey.id, id))
+				.where(and(eq(aiProviderKey.id, id), healthNotNewerThan(now)))
 				.returning({ id: aiProviderKey.id });
-			if (!row) throw new AiKeyNotFoundError();
+			if (!row) await ensureExists(id);
 		},
 		async recordValidationSuccess(id, now) {
 			const [row] = await database
@@ -231,9 +249,25 @@ export function createDrizzleAiKeyRepository(
 					lastFailureCode: null,
 					lastFailureMessage: null,
 				})
-				.where(eq(aiProviderKey.id, id))
+				.where(and(eq(aiProviderKey.id, id), healthNotNewerThan(now)))
 				.returning({ id: aiProviderKey.id });
-			if (!row) throw new AiKeyNotFoundError();
+			if (!row) await ensureExists(id);
+		},
+		async recordValidationFailure(id, update: KeyHealthUpdate, now) {
+			const [row] = await database
+				.update(aiProviderKey)
+				.set({
+					enabled: update.enabled,
+					validationStatus: update.validationStatus,
+					cooldownUntil: update.cooldownUntil,
+					lastValidatedAt: now,
+					lastFailureAt: now,
+					lastFailureCode: update.failureCode,
+					lastFailureMessage: update.failureMessage,
+				})
+				.where(and(eq(aiProviderKey.id, id), healthNotNewerThan(now)))
+				.returning({ id: aiProviderKey.id });
+			if (!row) await ensureExists(id);
 		},
 		async recordFailure(id, update: KeyHealthUpdate, now) {
 			const [row] = await database
@@ -243,14 +277,13 @@ export function createDrizzleAiKeyRepository(
 					validationStatus: update.validationStatus,
 					cooldownUntil: update.cooldownUntil,
 					lastUsedAt: now,
-					lastValidatedAt: now,
 					lastFailureAt: now,
 					lastFailureCode: update.failureCode,
 					lastFailureMessage: update.failureMessage,
 				})
-				.where(eq(aiProviderKey.id, id))
+				.where(and(eq(aiProviderKey.id, id), healthNotNewerThan(now)))
 				.returning({ id: aiProviderKey.id });
-			if (!row) throw new AiKeyNotFoundError();
+			if (!row) await ensureExists(id);
 		},
 	};
 }
