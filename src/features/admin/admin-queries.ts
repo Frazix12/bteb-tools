@@ -8,6 +8,8 @@ export const adminUsageOptions = (datePage = 1, userPage = 1) =>
 	});
 export const adminSummaryOptions = () =>
 	orpc.admin.data.summary.queryOptions({ input: {} });
+export const adminAiKeysOptions = () =>
+	orpc.admin.aiKeys.list.queryOptions({ input: {} });
 export const adminDocumentsOptions = (page = 1) =>
 	orpc.admin.data.listDocuments.queryOptions({ input: { page, pageSize: 20 } });
 export const adminPresetsOptions = (page = 1) =>
@@ -19,5 +21,6 @@ export async function invalidateAdmin(q: QueryClient) {
 		q.invalidateQueries({ queryKey: orpc.admin.data.summary.key() }),
 		q.invalidateQueries({ queryKey: orpc.admin.data.listDocuments.key() }),
 		q.invalidateQueries({ queryKey: orpc.admin.presets.list.key() }),
+		q.invalidateQueries({ queryKey: orpc.admin.aiKeys.list.key() }),
 	]);
 }

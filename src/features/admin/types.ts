@@ -1,5 +1,7 @@
+import type { PublicAiKey } from "#/features/ai-keys/types";
 import type { DocumentType } from "#/features/documents/types";
 import type { CoverPageData, IndexSheetData } from "#/orpc/schemas/document";
+export type AdminAiKey = PublicAiKey;
 export type Page<T> = {
 	items: T[];
 	total: number;
