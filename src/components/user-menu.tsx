@@ -1,7 +1,14 @@
-import { LogOut, UserRound } from "lucide-react";
+import { Check, LogOut, UserRound } from "lucide-react";
 import { DropdownMenu } from "radix-ui";
 import { Button } from "#/components/ui/button";
-import { ThemeToggle } from "#/features/theme/theme-toggle";
+import type { ThemeMode } from "#/features/theme/theme";
+import { useTheme } from "#/features/theme/theme-provider";
+
+const themeOptions: ReadonlyArray<{ label: string; mode: ThemeMode }> = [
+	{ label: "Light", mode: "light" },
+	{ label: "Dark", mode: "dark" },
+	{ label: "System", mode: "system" },
+];
 
 export function UserMenu({
 	user,
@@ -10,6 +17,8 @@ export function UserMenu({
 	user: { name: string; email: string; image?: string | null };
 	onLogout: () => void;
 }) {
+	const { mode, setMode } = useTheme();
+
 	return (
 		<DropdownMenu.Root>
 			<DropdownMenu.Trigger asChild>
@@ -42,9 +51,29 @@ export function UserMenu({
 						</p>
 					</div>
 					<DropdownMenu.Separator className="my-1 h-px bg-[var(--line)]" />
-					<div className="px-2 py-2">
-						<ThemeToggle />
-					</div>
+					<DropdownMenu.Label className="px-3 pb-1 pt-2 text-xs font-semibold text-muted-foreground">
+						Theme
+					</DropdownMenu.Label>
+					<DropdownMenu.RadioGroup
+						aria-label="Theme"
+						value={mode}
+						onValueChange={(value) => setMode(value as ThemeMode)}
+					>
+						{themeOptions.map((option) => (
+							<DropdownMenu.RadioItem
+								key={option.mode}
+								className="flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-sm outline-none transition-colors focus:bg-accent"
+								value={option.mode}
+							>
+								<span className="flex size-4 items-center justify-center">
+									<DropdownMenu.ItemIndicator>
+										<Check aria-hidden="true" className="size-4" />
+									</DropdownMenu.ItemIndicator>
+								</span>
+								{option.label}
+							</DropdownMenu.RadioItem>
+						))}
+					</DropdownMenu.RadioGroup>
 					<DropdownMenu.Separator className="my-1 h-px bg-[var(--line)]" />
 					<DropdownMenu.Item
 						className="flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold text-destructive outline-none transition-colors focus:bg-destructive/10"

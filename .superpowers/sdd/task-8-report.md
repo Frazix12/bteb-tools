@@ -29,3 +29,10 @@
 ## Concerns
 
 - None identified.
+
+## Accessibility follow-up
+
+- Replaced the nested theme button group with native Radix dropdown radio items so Light, Dark, and System participate in menu roving focus and selection semantics.
+- Added a real `ThemeProvider` interaction test proving Arrow Down moves focus, Enter selects Dark, and the selection is persisted and applied.
+- Follow-up RED: `bun run test src/components/user-menu.test.tsx` failed because no `menuitemradio` existed.
+- Follow-up GREEN: `bun run test src/components/user-menu.test.tsx` passed (1 test).

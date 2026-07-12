@@ -37,12 +37,8 @@ vi.mock("@tanstack/react-router", () => ({
 	useLocation: () => ({ pathname }),
 }));
 
-vi.mock("#/features/theme/theme-toggle", () => ({
-	ThemeToggle: () => (
-		<fieldset>
-			<legend>Theme</legend>
-		</fieldset>
-	),
+vi.mock("#/features/theme/theme-provider", () => ({
+	useTheme: () => ({ mode: "system", setMode: vi.fn() }),
 }));
 
 import { AppShell } from "./app-shell";
