@@ -6,14 +6,23 @@ import {
 	DuplicatePresetSlugError,
 	InvalidRoleTransitionError,
 } from "#/features/admin/admin-repository";
+import { DuplicateAiKeyError } from "#/features/ai-keys/repository";
 
 const { getSessionMock } = vi.hoisted(() => ({ getSessionMock: vi.fn() }));
 vi.mock("#/lib/session", () => ({ getSession: getSessionMock }));
+vi.mock("#/env", () => ({
+	env: { GEMINI_MODEL: "gemini-3.1-flash-lite", GEMINI_API_KEY: undefined },
+}));
 vi.mock("#/features/admin/admin-repository", () => ({
 	AdminTargetNotFoundError: class AdminTargetNotFoundError extends Error {},
 	DuplicatePresetSlugError: class DuplicatePresetSlugError extends Error {},
 	InvalidRoleTransitionError: class InvalidRoleTransitionError extends Error {},
 	drizzleAdminRepository: {},
+}));
+vi.mock("#/features/ai-keys/repository", () => ({
+	AiKeyNotFoundError: class AiKeyNotFoundError extends Error {},
+	DuplicateAiKeyError: class DuplicateAiKeyError extends Error {},
+	drizzleAiKeyRepository: {},
 }));
 
 import { createAdminRouter } from "./admin";
@@ -54,9 +63,26 @@ function repository() {
 	) as Record<string, ReturnType<typeof vi.fn>>;
 }
 function makeClient(repo: ReturnType<typeof repository>) {
-	return createRouterClient(createAdminRouter(repo as never), {
-		context: { headers: new Headers() },
-	});
+	const ai = aiDependencies();
+	return createRouterClient(
+		createAdminRouter({ repository: repo as never, ...ai } as never),
+		{
+			context: { headers: new Headers() },
+		},
+	);
+}
+
+function aiDependencies() {
+	return {
+		keyRepository: {
+			list: vi.fn(),
+			create: vi.fn(),
+			replace: vi.fn(),
+			setEnabled: vi.fn(),
+			delete: vi.fn(),
+		},
+		keyPool: { validateOne: vi.fn(), validateAll: vi.fn() },
+	};
 }
 
 function calls(client: ReturnType<typeof makeClient>) {
@@ -72,6 +98,13 @@ function calls(client: ReturnType<typeof makeClient>) {
 		() => client.presets.update({ id, ...write }),
 		() => client.presets.setEnabled({ id, enabled: false }),
 		() => client.presets.delete({ id }),
+		() => client.aiKeys.list({}),
+		() => client.aiKeys.create({ label: "key", apiKey: "secret" }),
+		() => client.aiKeys.replace({ id, apiKey: "secret" }),
+		() => client.aiKeys.setEnabled({ id, enabled: false }),
+		() => client.aiKeys.delete({ id }),
+		() => client.aiKeys.validate({ id }),
+		() => client.aiKeys.validateAll({}),
 	];
 }
 
@@ -189,5 +222,122 @@ describe("admin procedures", () => {
 		await expect(
 			client.presets.create({ ...write, data: {} } as never),
 		).rejects.toMatchObject({ code: "BAD_REQUEST", data: expect.anything() });
+	});
+});
+
+describe("admin AI key procedures", () => {
+	beforeEach(() =>
+		getSessionMock.mockResolvedValue({
+			session: { id: "s" },
+			user: { id: "admin", role: "admin" },
+		}),
+	);
+
+	test("delegates every operation and returns public metadata only", async () => {
+		const repo = repository();
+		const ai = aiDependencies();
+		const publicKey = {
+			id,
+			provider: "google",
+			label: "Primary",
+			maskedSuffix: "1234",
+			enabled: true,
+			validationStatus: "valid",
+			cooldownUntil: null,
+			lastCheckedAt: null,
+			lastUsedAt: null,
+			lastSuccessAt: null,
+			lastFailureAt: null,
+			failureCode: null,
+			failureMessage: null,
+			encryptedSecret: "ciphertext",
+			fingerprint: "digest",
+		};
+		ai.keyRepository.list.mockResolvedValue([publicKey]);
+		ai.keyRepository.create.mockResolvedValue(publicKey);
+		ai.keyRepository.replace.mockResolvedValue(publicKey);
+		ai.keyRepository.setEnabled.mockResolvedValue(publicKey);
+		ai.keyRepository.delete.mockResolvedValue(undefined);
+		ai.keyPool.validateOne.mockResolvedValue(publicKey);
+		ai.keyPool.validateAll.mockResolvedValue([publicKey]);
+		const client = createRouterClient(
+			createAdminRouter({ repository: repo as never, ...ai } as never),
+			{ context: { headers: new Headers() } },
+		);
+		const results = [
+			await client.aiKeys.list({}),
+			await client.aiKeys.create({
+				label: "  Primary  ",
+				apiKey: "secret-value",
+			}),
+			await client.aiKeys.replace({ id, apiKey: "replacement-secret" }),
+			await client.aiKeys.setEnabled({ id, enabled: false }),
+			await client.aiKeys.delete({ id }),
+			await client.aiKeys.validate({ id }),
+			await client.aiKeys.validateAll({}),
+		];
+		expect(ai.keyRepository.create).toHaveBeenCalledWith({
+			label: "Primary",
+			apiKey: "secret-value",
+			actorId: "admin",
+		});
+		expect(ai.keyRepository.replace).toHaveBeenCalledWith(id, {
+			label: "Primary",
+			apiKey: "replacement-secret",
+			actorId: "admin",
+		});
+		expect(ai.keyRepository.setEnabled).toHaveBeenCalledWith(
+			id,
+			false,
+			"admin",
+		);
+		expect(ai.keyRepository.delete).toHaveBeenCalledWith(id);
+		expect(ai.keyPool.validateOne).toHaveBeenCalledWith(id);
+		const serialized = JSON.stringify(results);
+		expect(serialized).not.toContain("secret-value");
+		expect(serialized).not.toContain("replacement-secret");
+		expect(serialized).not.toContain("encryptedSecret");
+		expect(serialized).not.toContain("fingerprint");
+	});
+
+	test("maps duplicate and missing keys to sanitized errors", async () => {
+		const ai = aiDependencies();
+		ai.keyRepository.create.mockRejectedValue(
+			new DuplicateAiKeyError("leaked secret"),
+		);
+		ai.keyRepository.list.mockResolvedValue([]);
+		const client = createRouterClient(
+			createAdminRouter({ repository: repository() as never, ...ai } as never),
+			{ context: { headers: new Headers() } },
+		);
+		await expect(
+			client.aiKeys.create({ label: "key", apiKey: "top-secret" }),
+		).rejects.toMatchObject({
+			code: "CONFLICT",
+			message: "AI key already exists.",
+		});
+		await expect(
+			client.aiKeys.replace({ id, apiKey: "top-secret" }),
+		).rejects.toMatchObject({
+			code: "NOT_FOUND",
+			message: "AI key not found.",
+		});
+	});
+
+	test("validates bounded inputs before calling dependencies", async () => {
+		const ai = aiDependencies();
+		const client = createRouterClient(
+			createAdminRouter({ repository: repository() as never, ...ai } as never),
+			{ context: { headers: new Headers() } },
+		);
+		for (const call of [
+			() => client.aiKeys.create({ label: "x".repeat(101), apiKey: "key" }),
+			() => client.aiKeys.create({ label: "ok", apiKey: "   " }),
+			() => client.aiKeys.create({ label: "ok", apiKey: "x".repeat(501) }),
+			() => client.aiKeys.replace({ id: "bad", apiKey: "key" }),
+		])
+			await expect(call()).rejects.toMatchObject({ code: "BAD_REQUEST" });
+		expect(ai.keyRepository.create).not.toHaveBeenCalled();
+		expect(ai.keyRepository.replace).not.toHaveBeenCalled();
 	});
 });

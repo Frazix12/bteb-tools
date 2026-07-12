@@ -118,6 +118,13 @@ const props = {
 		page: 1,
 		pageSize: 20,
 	},
+	aiKeys: [],
+	onCreateAiKey: vi.fn(),
+	onReplaceAiKey: vi.fn(),
+	onToggleAiKey: vi.fn(),
+	onDeleteAiKey: vi.fn(),
+	onValidateAiKey: vi.fn(),
+	onValidateAllAiKeys: vi.fn(),
 	onPage: vi.fn(),
 	onUsagePage: vi.fn(),
 	onRole: vi.fn(),
@@ -134,17 +141,23 @@ afterEach(cleanup);
 describe("admin dashboard", () => {
 	test("uses structured cards, stat tiles, and table styling", () => {
 		render(<AdminDashboardView {...props} />);
-		expect(document.querySelectorAll("[data-admin-panel]")).toHaveLength(4);
+		expect(document.querySelectorAll("[data-admin-panel]")).toHaveLength(5);
 		expect(
 			document.querySelectorAll("[data-admin-stat]").length,
 		).toBeGreaterThanOrEqual(4);
-		expect(document.querySelectorAll("[data-admin-table]")).toHaveLength(3);
+		expect(document.querySelectorAll("[data-admin-table]")).toHaveLength(4);
 		expect(document.querySelector("[data-admin-actions]")).toBeTruthy();
 	});
 
 	test("shows four labeled responsive sections, pagination, cost, and accessible controls", () => {
 		render(<AdminDashboardView {...props} />);
-		for (const name of ["Users", "AI Usage", "Data", "Presets"])
+		for (const name of [
+			"Users",
+			"AI Usage",
+			"Gemini API Keys",
+			"Data",
+			"Presets",
+		])
 			expect(screen.getByRole("heading", { name })).toBeTruthy();
 		expect(screen.getAllByText("Estimated cost").length).toBeGreaterThan(0);
 		expect(screen.getAllByText("$0.0125").length).toBeGreaterThan(0);

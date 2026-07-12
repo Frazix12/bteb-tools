@@ -1,36 +1,31 @@
-# Task 6 report: AI usage capture and estimated pricing
+# Task 6 Report: Admin key-management API
 
-## Outcome
+## Implemented
 
-- Added provider/model/token usage to autofill results and typed failure paths.
-- Added versioned integer-micro pricing for every configured Gemini model.
-- Added a Drizzle-backed usage repository and exactly-once router recording for success, semantic failure, and provider failure after quota acceptance.
-- Usage rows contain only owner, provider/model, token counts, estimated cost, pricing version, outcome, and timestamp. Tests prohibit `text`, `prompt`, and `patch` keys.
-- Telemetry persistence failures are logged and do not retry the provider request.
+- Added dependency injection for the admin repository, AI-key repository, and Gemini key pool.
+- Added `admin.aiKeys.list`, `create`, `replace`, `setEnabled`, `delete`, `validate`, and `validateAll`.
+- Added bounded, trimmed Zod inputs for labels/API keys and UUID validation for IDs.
+- Added explicit public-metadata projection so repository/pool extras such as encrypted secrets and fingerprints cannot be serialized.
+- Added sanitized `CONFLICT` and `NOT_FOUND` mappings for AI-key repository errors.
+- Preserved the existing admin router behavior and expanded middleware rejection coverage to every AI-key procedure.
+- Added a server-only Gemini credential validator that performs a minimal non-streaming request with the configured model and supplied credential.
+- Wired both admin validation and autofill key pools to real validation instead of unconditional success.
 
-## Pricing source
+## TDD evidence
 
-Verified against Google's official Gemini Developer API pricing page on 2026-07-11:
-https://ai.google.dev/gemini-api/docs/pricing
+- RED: `bun run test src/orpc/router/admin.test.ts` failed because `aiKeys` did not exist (and the factory still accepted the old dependency shape).
+- GREEN: focused admin router tests passed after the implementation.
+- RED (production wiring follow-up): the focused validator test failed because the Gemini validation module did not exist.
+- GREEN (production wiring follow-up): adapter-boundary tests prove model/key forwarding, raw-error preservation, and invalid-key health recording without network access.
 
-Standard paid-tier text rates per 1M tokens encoded:
+## Verification
 
-- `gemini-3.1-flash-lite`: $0.25 input / $1.50 output
-- `gemini-2.5-flash-lite`: $0.10 input / $0.40 output
-- `gemini-2.5-flash`: $0.30 input / $2.50 output
-
-## TDD and verification
-
-- Red: focused tests initially failed because `pricing.ts` and `usage-repository.ts` did not exist.
-- Green: `pnpm vitest run src/features/autofill src/orpc/router/autofill.test.ts` — 6 files, 27 tests passed.
-- Types: `pnpm exec tsc --noEmit` — passed.
-- Format/lint: `pnpm biome check src/features/autofill src/orpc/router/autofill.ts src/orpc/router/autofill.test.ts` — passed after formatting.
+- `bun run test src/features/ai-keys/gemini-validation.test.ts src/features/ai-keys/key-pool.test.ts src/orpc/router/admin.test.ts src/orpc/middleware/admin.test.ts` — 4 files, 23 tests passed.
+- `bun x tsc --noEmit` — passed.
+- `bun run check` — 159 files checked, no fixes required.
 - `git diff --check` — passed.
 
-## Self-review
+## Notes
 
-No prompt/source text or extracted patch crosses the repository boundary. Null token counts are stored as zero because the existing accounting table uses non-null bigint columns; the typed capture result retains null to distinguish unavailable provider usage. Unknown models estimate zero cost under the current pricing version.
-
-## Review follow-up
-
-Fixed provider token loss when Gemini reports usage and then rejects: the provider boundary now catches the rejection and throws a sanitized `ProviderAutofillError` carrying the configured model and already-captured tokens. The extractor preserves that typed error unchanged. Regression tests simulate `onUsage` followed by rejection and verify the router persists one `provider_error` row with the captured tokens and $1.75 / 1M+1M estimated cost. Focused verification now passes 29 tests.
+- Replacement preserves the existing label because its public API intentionally accepts only `{ id, apiKey }`.
+- Gemini validation uses the minimal prompt `Reply OK.`, disables streaming, does not log provider payloads or credentials, and rethrows provider errors unchanged for classification.

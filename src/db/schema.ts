@@ -1,8 +1,11 @@
+import { sql } from "drizzle-orm";
 import {
 	bigint,
 	bigserial,
 	boolean,
+	check,
 	index,
+	integer,
 	jsonb,
 	pgEnum,
 	pgTable,
@@ -149,6 +152,80 @@ export const aiUsageEvent = pgTable(
 		index("ai_usage_event_model_created_at_idx").on(
 			table.model,
 			table.createdAt.desc(),
+		),
+	],
+);
+
+export const aiKeyValidationStatusEnum = pgEnum("ai_key_validation_status", [
+	"unchecked",
+	"valid",
+	"invalid",
+	"transient_failure",
+]);
+
+export const aiProviderKey = pgTable(
+	"ai_provider_key",
+	{
+		id: uuid("id").defaultRandom().primaryKey(),
+		provider: text("provider").notNull(),
+		label: text("label").notNull(),
+		encryptedSecret: text("encrypted_secret").notNull(),
+		fingerprint: text("fingerprint").notNull().unique(),
+		maskedSuffix: text("masked_suffix").notNull(),
+		credentialRevision: integer("credential_revision").default(1).notNull(),
+		enabled: boolean("enabled").default(false).notNull(),
+		validationStatus: aiKeyValidationStatusEnum("validation_status")
+			.default("unchecked")
+			.notNull(),
+		cooldownUntil: timestamp("cooldown_until", { withTimezone: true }),
+		lastValidatedAt: timestamp("last_validated_at", { withTimezone: true }),
+		lastUsedAt: timestamp("last_used_at", { withTimezone: true }),
+		lastSuccessAt: timestamp("last_success_at", { withTimezone: true }),
+		lastFailureAt: timestamp("last_failure_at", { withTimezone: true }),
+		lastFailureCode: text("last_failure_code"),
+		lastFailureMessage: text("last_failure_message"),
+		createdBy: text("created_by").references(() => user.id, {
+			onDelete: "set null",
+		}),
+		updatedBy: text("updated_by").references(() => user.id, {
+			onDelete: "set null",
+		}),
+		createdAt: timestamp("created_at", { withTimezone: true })
+			.defaultNow()
+			.notNull(),
+		updatedAt: timestamp("updated_at", { withTimezone: true })
+			.defaultNow()
+			.$onUpdate(() => new Date())
+			.notNull(),
+	},
+	(table) => [
+		index("ai_provider_key_provider_eligibility_idx").on(
+			table.provider,
+			table.enabled,
+			table.validationStatus,
+			table.cooldownUntil,
+		),
+		index("ai_provider_key_provider_last_used_idx").on(
+			table.provider,
+			table.lastUsedAt,
+		),
+	],
+);
+
+export const aiKeyRotationState = pgTable(
+	"ai_key_rotation_state",
+	{
+		provider: text("provider").primaryKey(),
+		cursor: bigint("cursor", { mode: "bigint" }).default(sql`0`).notNull(),
+		updatedAt: timestamp("updated_at", { withTimezone: true })
+			.defaultNow()
+			.$onUpdate(() => new Date())
+			.notNull(),
+	},
+	(table) => [
+		check(
+			"ai_key_rotation_state_cursor_non_negative",
+			sql`${table.cursor} >= 0`,
 		),
 	],
 );

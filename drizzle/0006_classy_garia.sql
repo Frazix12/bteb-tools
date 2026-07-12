@@ -1,0 +1,1 @@
+ALTER TABLE "ai_provider_key" ADD COLUMN "credential_revision" integer DEFAULT 1 NOT NULL;

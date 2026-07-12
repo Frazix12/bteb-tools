@@ -1,18 +1,36 @@
 # Task 3 report
 
-## RED
+## Final implementation
 
-- `bun run test src/features/preview/a4-page.test.tsx` — failed as expected: 3 failed, 7 passed. Height-only and smaller-axis assertions exposed width-only scaling; nonpositive width still returned `1`.
-- `bun run test src/features/preview/preview-css.test.ts` — failed as expected: 1 failed, 3 passed. The short-landscape preview-host rule was absent.
+- Added the typed AI key repository, encrypted create/replace/validation reads, duplicate/not-found/configuration errors, health updates, and deterministic round-robin selection.
+- Candidate selection inserts the Google cursor singleton, locks it with `SELECT ... FOR UPDATE`, selects only enabled and valid keys whose cooldown is absent or expired, advances the cursor, commits, and decrypts afterward.
+- Public projections explicitly exclude encrypted secrets and fingerprints.
+- `ai_provider_key.last_success_at` is nullable, migrated additively, exposed as `lastSuccessAt`, and updated by `recordSuccess`.
+- The production repository creates its cipher from `env.AI_KEY_ENCRYPTION_SECRET` when configured and otherwise fails closed for secret-bearing operations.
 
-## GREEN
+## Final test coverage
 
-- `bun run test src/features/preview/a4-page.test.tsx src/features/preview/preview-css.test.ts` — passed: 2 files, 14 tests.
-- `bunx biome check src/features/preview/use-page-scale.ts src/features/preview/a4-page.test.tsx src/features/preview/preview.css src/features/preview/preview-css.test.ts` — passed: 4 files checked, no fixes.
+The 10 focused repository/schema tests cover missing cipher configuration, `23505` duplicate translation, exact `[A,B,C]` then `[B,C,A]` rotation, unique candidates, secret decryption only in server candidate results, compiled eligibility SQL and bound parameters, `FOR UPDATE` lock SQL, overlapping selection serialization at the lock call, health timestamps, explicit secret-free public projection, and schema columns.
 
-## Self-review
+## Exact verification
 
-- Confirmed scaling uses the minimum of the capped width and positive-height ratios.
-- Confirmed the hook derives height from viewport bottom, retains observer/resize/orientation cleanup, and remains server-safe.
-- Confirmed short-landscape CSS is outside and does not modify the print block.
-- No concerns found.
+- `bun run test src/features/ai-keys/repository.test.ts src/db/schema.test.ts` — 2 files passed, 10 tests passed.
+- `bun x tsc --noEmit` — exit 0.
+- `bun run check src/db/schema.ts src/db/schema.test.ts src/features/ai-keys/types.ts src/features/ai-keys/repository.ts src/features/ai-keys/repository.test.ts drizzle/0005_curious_toad_men.sql drizzle/meta/0005_snapshot.json drizzle/meta/_journal.json` — checked 5 applicable source files, no errors.
+- `git diff --check` — exit 0.
+
+## Concern
+
+A live PostgreSQL integration test remains useful when the repository gains a database test fixture; current locking and predicate guarantees are tested through compiled Drizzle SQL and a transaction-capable fake.
+
+## Eligibility correction
+
+Human decision applied: candidates must be enabled and either `valid`, or `transient_failure` with a null/expired cooldown. `unchecked`, `invalid`, disabled, and transient failures with a future cooldown are excluded. The compiled Drizzle SQL/parameter assertion and eligibility fixtures cover each branch explicitly.
+
+## Eligibility correction verification
+
+- `bun run test src/features/ai-keys/repository.test.ts src/db/schema.test.ts` — 2 files passed, 16 tests passed.
+- `bun x tsc --noEmit` — exit 0.
+- First `bun run check ...` — exit 1 due only to one formatter change requested in `repository.ts`; formatting was applied before the final verification below.
+- Final `bun run check src/db/schema.ts src/db/schema.test.ts src/features/ai-keys/types.ts src/features/ai-keys/repository.ts src/features/ai-keys/repository.test.ts drizzle/0005_curious_toad_men.sql drizzle/meta/0005_snapshot.json drizzle/meta/_journal.json` — checked 5 applicable files, no errors, exit 0.
+- Final `git diff --check` — exit 0.

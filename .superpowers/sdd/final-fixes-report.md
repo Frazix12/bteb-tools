@@ -1,29 +1,30 @@
 # Final review fixes report
 
-## Result
+## Prior final-review changes
 
-All final-review findings were addressed in one pass.
+- Added optimistic health-write ordering: success and failure updates only apply when both stored success/failure timestamps are null or no newer than the operation's `attemptAt`.
+- Split validation failures from runtime failures. Validation writes own `lastValidatedAt`; runtime writes own `lastUsedAt`.
+- Runtime success no longer changes `lastValidatedAt`.
+- Strengthened `validateAll` coverage for ordered IDs/statuses and repository persistence calls.
+- Made the mocked Playwright “Check all keys” response visibly change the key to Invalid and asserted that UI result.
 
-- Bootstrap admin protection now rejects demotion by every actor, not only self-demotion, at the repository/API boundary.
-- User rows load document and AI aggregates in separate grouped queries, preventing document/usage join multiplication. The UI shows request, input/output token, and estimated-cost totals.
-- AI reporting now supports bounded date filters and paginated date/user breakdowns, plus a bounded outcome breakdown. The dashboard renders all three.
-- Data summary separately reports total/enabled/disabled presets and AI requests.
-- Unknown input/output token metadata remains `null` in schema, migration, repository, reports, and UI instead of becoming zero. Estimated cost remains zero when usage is unavailable.
-- Google Gemini standard paid-tier text rates were re-verified against the official pricing page on 2026-07-11; current rates remain correct ($0.25/$1.50 for Gemini 3.1 Flash-Lite, $0.10/$0.40 for Gemini 2.5 Flash-Lite, and $0.30/$2.50 for Gemini 2.5 Flash).
-- Every `@tanstack/ai*` dependency is pinned to its exact installed version and `pnpm-lock.yaml` was generated.
-- Preset slugs enforce a maximum of 80 characters and lowercase kebab-case. Local JSON errors are connected to the textarea through `aria-describedby`.
-- Single document and preset deletes now use `DELETE ... RETURNING` directly without transactions.
+Prior verification recorded 38 focused tests passing, 46 files / 223 full-unit tests passing, TypeScript, Biome, build, and diff checks passing. The visual admin test was blocked before execution because `DATABASE_URL` was required.
 
-## Verification
+## Final blocker fix
 
-- `pnpm test`: 38 files, 155 tests passed.
-- `pnpm check`: passed, 142 files checked.
-- `pnpm exec tsc --noEmit`: passed.
-- `pnpm build`: passed (client, SSR, and Nitro production output).
-- `pnpm exec playwright test`: 13 passed, including PostgreSQL seed/admin access and visual/print coverage.
-- `pnpm db:generate`: no schema changes/no migration drift.
-- Diff/status review: unrelated pre-existing edits to `.superpowers/sdd/task-2-report.md` and `task-3-report.md` were preserved and excluded from the commit.
+## Credential replacement race guard
 
-## Notes
+- Added `ai_provider_key.credential_revision` as a private, monotonically increasing integer with additive migration `0006_classy_garia.sql`.
+- Included the revision in private validation/runtime candidates and incremented it atomically on credential replacement.
+- Required all success/failure and validation completion writes to match both key ID and expected credential revision, while retaining attempt-time ordering. Existing rows with a newer revision make stale completions harmless no-ops.
+- Kept the public key projection unchanged; neither plaintext credentials nor credential revisions are exposed.
+- Added regression coverage for stale runtime success, runtime failure, validation success, and validation failure completions after replacement.
 
-Playwright/build emitted existing TanStack Router code-splitting warnings for named exports in the two new-document route files; they do not affect correctness and all checks passed.
+## Verification (2026-07-12)
+
+- Focused schema/repository/key-pool/admin/autofill validation: `bun run test src/db/schema.test.ts src/features/ai-keys/repository.test.ts src/features/ai-keys/key-pool.test.ts src/features/ai-keys/gemini-validation.test.ts src/orpc/router/admin.test.ts src/features/admin/ai-keys-panel.test.tsx src/features/autofill/extract.test.ts` — PASS, 7 files / 56 tests.
+- Full unit suite: `bun run test` — PASS, 46 files / 227 tests.
+- TypeScript: `bun x tsc --noEmit` — PASS.
+- Biome: `bun run check` — PASS, 161 files checked, no fixes applied.
+- Production build: `bun run build` — PASS. Vite emitted the existing informational >500 kB chunk warning.
+- Diff whitespace validation: `git diff --check` — PASS.

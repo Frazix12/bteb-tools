@@ -10,9 +10,11 @@ import {
 	AlertDialogTitle,
 	AlertDialogTrigger,
 } from "#/components/ui/alert-dialog";
+import { AiKeysPanel } from "./ai-keys-panel";
 import { DataPanel } from "./data-panel";
 import { PresetsPanel } from "./presets-panel";
 import type {
+	AdminAiKey,
 	AdminDocument,
 	AdminPreset,
 	AdminUser,
@@ -60,6 +62,7 @@ export type AdminDashboardProps = {
 	summary: Summary;
 	documents: Page<AdminDocument>;
 	presets: Page<AdminPreset>;
+	aiKeys: AdminAiKey[];
 	bootstrapEmail: string;
 	pending: boolean;
 	message: Message;
@@ -70,6 +73,12 @@ export type AdminDashboardProps = {
 	onSavePreset: (input: PresetInput, id?: string) => void;
 	onTogglePreset: (preset: AdminPreset, enabled: boolean) => void;
 	onDeletePreset: (id: string) => void;
+	onCreateAiKey: (label: string, apiKey: string) => void;
+	onReplaceAiKey: (id: string, apiKey: string) => void;
+	onToggleAiKey: (key: AdminAiKey, enabled: boolean) => void;
+	onDeleteAiKey: (id: string) => void;
+	onValidateAiKey: (id: string) => void;
+	onValidateAllAiKeys: () => void;
 };
 export function AdminDashboardView(p: AdminDashboardProps) {
 	return (
@@ -98,6 +107,16 @@ export function AdminDashboardView(p: AdminDashboardProps) {
 				bootstrapEmail={p.bootstrapEmail}
 			/>
 			<UsagePanel data={p.usage} onPage={p.onUsagePage} pending={p.pending} />
+			<AiKeysPanel
+				keys={p.aiKeys}
+				pending={p.pending}
+				onCreate={p.onCreateAiKey}
+				onReplace={p.onReplaceAiKey}
+				onToggle={p.onToggleAiKey}
+				onDelete={p.onDeleteAiKey}
+				onValidate={p.onValidateAiKey}
+				onValidateAll={p.onValidateAllAiKeys}
+			/>
 			<DataPanel
 				summary={p.summary}
 				data={p.documents}
