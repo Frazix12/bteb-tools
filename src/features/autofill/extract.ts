@@ -301,6 +301,9 @@ async function getDefaultGeminiGenerator(): Promise<AutofillGenerator> {
 			"#/features/ai-keys/gemini-errors"
 		);
 		const { createGeminiKeyPool } = await import("#/features/ai-keys/key-pool");
+		const { createProductionGeminiCredentialValidator } = await import(
+			"#/features/ai-keys/gemini-validation"
+		);
 		const { drizzleAiKeyRepository } = await import(
 			"#/features/ai-keys/repository"
 		);
@@ -309,7 +312,9 @@ async function getDefaultGeminiGenerator(): Promise<AutofillGenerator> {
 			getFallbackKey: () => env.GEMINI_API_KEY,
 			now: () => new Date(),
 			classifier: classifyGeminiError,
-			validateCredential: async () => undefined,
+			validateCredential: createProductionGeminiCredentialValidator(
+				env.GEMINI_MODEL,
+			),
 		});
 		return createGeminiAutofillGenerator({
 			pool,

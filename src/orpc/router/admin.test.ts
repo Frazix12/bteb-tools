@@ -10,6 +10,9 @@ import { DuplicateAiKeyError } from "#/features/ai-keys/repository";
 
 const { getSessionMock } = vi.hoisted(() => ({ getSessionMock: vi.fn() }));
 vi.mock("#/lib/session", () => ({ getSession: getSessionMock }));
+vi.mock("#/env", () => ({
+	env: { GEMINI_MODEL: "gemini-3.1-flash-lite", GEMINI_API_KEY: undefined },
+}));
 vi.mock("#/features/admin/admin-repository", () => ({
 	AdminTargetNotFoundError: class AdminTargetNotFoundError extends Error {},
 	DuplicatePresetSlugError: class DuplicatePresetSlugError extends Error {},

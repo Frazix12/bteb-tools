@@ -1,6 +1,6 @@
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
-
+import { env } from "#/env";
 import {
 	type AdminRepository,
 	AdminTargetNotFoundError,
@@ -9,6 +9,7 @@ import {
 	InvalidRoleTransitionError,
 } from "#/features/admin/admin-repository";
 import { classifyGeminiError } from "#/features/ai-keys/gemini-errors";
+import { createProductionGeminiCredentialValidator } from "#/features/ai-keys/gemini-validation";
 import {
 	createGeminiKeyPool,
 	type GeminiKeyPool,
@@ -281,10 +282,12 @@ export function createAdminRouter({
 
 const productionKeyPool = createGeminiKeyPool({
 	repo: drizzleAiKeyRepository,
-	getFallbackKey: () => process.env.GEMINI_API_KEY,
+	getFallbackKey: () => env.GEMINI_API_KEY,
 	now: () => new Date(),
 	classifier: classifyGeminiError,
-	validateCredential: async () => undefined,
+	validateCredential: createProductionGeminiCredentialValidator(
+		env.GEMINI_MODEL,
+	),
 });
 export const adminRouter = createAdminRouter({
 	repository: drizzleAdminRepository,
