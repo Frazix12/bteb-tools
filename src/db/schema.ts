@@ -5,6 +5,7 @@ import {
 	boolean,
 	check,
 	index,
+	integer,
 	jsonb,
 	pgEnum,
 	pgTable,
@@ -171,6 +172,7 @@ export const aiProviderKey = pgTable(
 		encryptedSecret: text("encrypted_secret").notNull(),
 		fingerprint: text("fingerprint").notNull().unique(),
 		maskedSuffix: text("masked_suffix").notNull(),
+		credentialRevision: integer("credential_revision").default(1).notNull(),
 		enabled: boolean("enabled").default(false).notNull(),
 		validationStatus: aiKeyValidationStatusEnum("validation_status")
 			.default("unchecked")

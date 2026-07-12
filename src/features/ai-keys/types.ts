@@ -20,7 +20,11 @@ export type PublicAiKey = {
 	failureMessage: string | null;
 };
 
-export type ManagedAiKeyCandidate = { id: string; apiKey: string };
+export type ManagedAiKeyCandidate = {
+	id: string;
+	apiKey: string;
+	credentialRevision: number;
+};
 
 export type KeyHealthUpdate = {
 	kind?: "invalid" | "quota" | "transient" | "request";
@@ -45,12 +49,22 @@ export interface AiKeyRepository {
 	delete(id: string): Promise<void>;
 	getForValidation(id: string): Promise<ManagedAiKeyCandidate>;
 	selectCandidates(now: Date): Promise<ManagedAiKeyCandidate[]>;
-	recordSuccess(id: string, now: Date): Promise<void>;
-	recordValidationSuccess(id: string, now: Date): Promise<void>;
+	recordSuccess(id: string, expectedRevision: number, now: Date): Promise<void>;
+	recordValidationSuccess(
+		id: string,
+		expectedRevision: number,
+		now: Date,
+	): Promise<void>;
 	recordValidationFailure(
 		id: string,
+		expectedRevision: number,
 		update: KeyHealthUpdate,
 		now: Date,
 	): Promise<void>;
-	recordFailure(id: string, update: KeyHealthUpdate, now: Date): Promise<void>;
+	recordFailure(
+		id: string,
+		expectedRevision: number,
+		update: KeyHealthUpdate,
+		now: Date,
+	): Promise<void>;
 }

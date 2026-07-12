@@ -26,8 +26,8 @@ function required<T>(value: T | undefined): T {
 
 function setup(
 	candidates = [
-		{ id: "A", apiKey: "key-A" },
-		{ id: "B", apiKey: "key-B" },
+		{ id: "A", apiKey: "key-A", credentialRevision: 1 },
+		{ id: "B", apiKey: "key-B", credentialRevision: 1 },
 	],
 	fallback?: string,
 ) {
@@ -82,10 +82,11 @@ describe("Gemini key pool", () => {
 		expect(execute).toHaveBeenCalledTimes(2);
 		expect(repo.recordFailure).toHaveBeenCalledWith(
 			"A",
+			1,
 			expect.objectContaining({ kind: "quota" }),
 			expect.any(Date),
 		);
-		expect(repo.recordSuccess).toHaveBeenCalledWith("B", expect.any(Date));
+		expect(repo.recordSuccess).toHaveBeenCalledWith("B", 1, expect.any(Date));
 	});
 
 	test.each([
@@ -99,6 +100,7 @@ describe("Gemini key pool", () => {
 		});
 		expect(repo.recordFailure).toHaveBeenCalledWith(
 			"A",
+			1,
 			expect.objectContaining(expected),
 			now,
 		);
@@ -118,8 +120,8 @@ describe("Gemini key pool", () => {
 	test("attempts duplicate candidate ids once and fallback once", async () => {
 		const { pool } = setup(
 			[
-				{ id: "A", apiKey: "key-A" },
-				{ id: "A", apiKey: "key-A" },
+				{ id: "A", apiKey: "key-A", credentialRevision: 1 },
+				{ id: "A", apiKey: "key-A", credentialRevision: 1 },
 			],
 			"fallback",
 		);
@@ -145,7 +147,9 @@ describe("Gemini key pool", () => {
 		[undefined, "valid", true],
 		["invalid", "invalid", false],
 	] as const)("validates stored secret without returning it", async (failure, status, enabled) => {
-		const { repo, keys } = setup([{ id: "A", apiKey: "stored-secret" }]);
+		const { repo, keys } = setup([
+			{ id: "A", apiKey: "stored-secret", credentialRevision: 1 },
+		]);
 		const validateCredential = vi.fn(async (key: string) => {
 			expect(key).toBe("stored-secret");
 			if (failure) throw { kind: failure };
@@ -173,19 +177,21 @@ describe("Gemini key pool", () => {
 		if (failure)
 			expect(repo.recordValidationFailure).toHaveBeenCalledWith(
 				"A",
+				1,
 				expect.objectContaining({
 					enabled: false,
 					validationStatus: "invalid",
 				}),
 				now,
 			);
-		else expect(repo.recordValidationSuccess).toHaveBeenCalledWith("A", now);
+		else expect(repo.recordValidationSuccess).toHaveBeenCalledWith("A", 1, now);
 	});
 
 	test("validateAll limits validation concurrency to three", async () => {
 		const candidates = Array.from({ length: 8 }, (_, index) => ({
 			id: `${index}`,
 			apiKey: `key-${index}`,
+			credentialRevision: 1,
 		}));
 		const { repo, keys } = setup(candidates);
 		let active = 0;

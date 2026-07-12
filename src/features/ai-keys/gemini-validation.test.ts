@@ -45,6 +45,7 @@ describe("createGeminiCredentialValidator", () => {
 			getForValidation: vi.fn(async () => ({
 				id: "key-id",
 				apiKey: "bad-secret",
+				credentialRevision: 3,
 			})),
 			recordFailure,
 			recordValidationFailure,
@@ -74,6 +75,7 @@ describe("createGeminiCredentialValidator", () => {
 		expect(recordValidationSuccess).not.toHaveBeenCalled();
 		expect(recordValidationFailure).toHaveBeenCalledWith(
 			"key-id",
+			3,
 			expect.objectContaining({ validationStatus: "invalid", enabled: false }),
 			new Date("2026-07-12T00:00:00.000Z"),
 		);

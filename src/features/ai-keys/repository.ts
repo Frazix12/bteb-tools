@@ -127,6 +127,7 @@ export function createDrizzleAiKeyRepository(
 					.update(aiProviderKey)
 					.set({
 						...encryptedValues(input),
+						credentialRevision: sql`${aiProviderKey.credentialRevision} + 1`,
 						validationStatus: "unchecked",
 						cooldownUntil: null,
 						lastFailureCode: null,
@@ -163,12 +164,17 @@ export function createDrizzleAiKeyRepository(
 				.select({
 					id: aiProviderKey.id,
 					encryptedSecret: aiProviderKey.encryptedSecret,
+					credentialRevision: aiProviderKey.credentialRevision,
 				})
 				.from(aiProviderKey)
 				.where(eq(aiProviderKey.id, id))
 				.limit(1);
 			if (!row) throw new AiKeyNotFoundError();
-			return { id: row.id, apiKey: configured.decrypt(row.encryptedSecret) };
+			return {
+				id: row.id,
+				apiKey: configured.decrypt(row.encryptedSecret),
+				credentialRevision: row.credentialRevision,
+			};
 		},
 		async selectCandidates(now) {
 			const configured = requireCipher(cipher);
@@ -188,6 +194,7 @@ export function createDrizzleAiKeyRepository(
 					.select({
 						id: aiProviderKey.id,
 						encryptedSecret: aiProviderKey.encryptedSecret,
+						credentialRevision: aiProviderKey.credentialRevision,
 					})
 					.from(aiProviderKey)
 					.where(
@@ -218,9 +225,10 @@ export function createDrizzleAiKeyRepository(
 			return selected.map((row) => ({
 				id: row.id,
 				apiKey: configured.decrypt(row.encryptedSecret),
+				credentialRevision: row.credentialRevision,
 			}));
 		},
-		async recordSuccess(id, now) {
+		async recordSuccess(id, expectedRevision, now) {
 			const [row] = await database
 				.update(aiProviderKey)
 				.set({
@@ -232,11 +240,17 @@ export function createDrizzleAiKeyRepository(
 					lastFailureCode: null,
 					lastFailureMessage: null,
 				})
-				.where(and(eq(aiProviderKey.id, id), healthNotNewerThan(now)))
+				.where(
+					and(
+						eq(aiProviderKey.id, id),
+						eq(aiProviderKey.credentialRevision, expectedRevision),
+						healthNotNewerThan(now),
+					),
+				)
 				.returning({ id: aiProviderKey.id });
 			if (!row) await ensureExists(id);
 		},
-		async recordValidationSuccess(id, now) {
+		async recordValidationSuccess(id, expectedRevision, now) {
 			const [row] = await database
 				.update(aiProviderKey)
 				.set({
@@ -249,11 +263,22 @@ export function createDrizzleAiKeyRepository(
 					lastFailureCode: null,
 					lastFailureMessage: null,
 				})
-				.where(and(eq(aiProviderKey.id, id), healthNotNewerThan(now)))
+				.where(
+					and(
+						eq(aiProviderKey.id, id),
+						eq(aiProviderKey.credentialRevision, expectedRevision),
+						healthNotNewerThan(now),
+					),
+				)
 				.returning({ id: aiProviderKey.id });
 			if (!row) await ensureExists(id);
 		},
-		async recordValidationFailure(id, update: KeyHealthUpdate, now) {
+		async recordValidationFailure(
+			id,
+			expectedRevision,
+			update: KeyHealthUpdate,
+			now,
+		) {
 			const [row] = await database
 				.update(aiProviderKey)
 				.set({
@@ -265,11 +290,17 @@ export function createDrizzleAiKeyRepository(
 					lastFailureCode: update.failureCode,
 					lastFailureMessage: update.failureMessage,
 				})
-				.where(and(eq(aiProviderKey.id, id), healthNotNewerThan(now)))
+				.where(
+					and(
+						eq(aiProviderKey.id, id),
+						eq(aiProviderKey.credentialRevision, expectedRevision),
+						healthNotNewerThan(now),
+					),
+				)
 				.returning({ id: aiProviderKey.id });
 			if (!row) await ensureExists(id);
 		},
-		async recordFailure(id, update: KeyHealthUpdate, now) {
+		async recordFailure(id, expectedRevision, update: KeyHealthUpdate, now) {
 			const [row] = await database
 				.update(aiProviderKey)
 				.set({
@@ -281,7 +312,13 @@ export function createDrizzleAiKeyRepository(
 					lastFailureCode: update.failureCode,
 					lastFailureMessage: update.failureMessage,
 				})
-				.where(and(eq(aiProviderKey.id, id), healthNotNewerThan(now)))
+				.where(
+					and(
+						eq(aiProviderKey.id, id),
+						eq(aiProviderKey.credentialRevision, expectedRevision),
+						healthNotNewerThan(now),
+					),
+				)
 				.returning({ id: aiProviderKey.id });
 			if (!row) await ensureExists(id);
 		},

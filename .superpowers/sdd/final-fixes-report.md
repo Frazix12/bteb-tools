@@ -1,6 +1,6 @@
 # Final review fixes report
 
-## Changes
+## Prior final-review changes
 
 - Added optimistic health-write ordering: success and failure updates only apply when both stored success/failure timestamps are null or no newer than the operation's `attemptAt`.
 - Split validation failures from runtime failures. Validation writes own `lastValidatedAt`; runtime writes own `lastUsedAt`.
@@ -8,18 +8,23 @@
 - Strengthened `validateAll` coverage for ordered IDs/statuses and repository persistence calls.
 - Made the mocked Playwright “Check all keys” response visibly change the key to Invalid and asserted that UI result.
 
-## Verification
+Prior verification recorded 38 focused tests passing, 46 files / 223 full-unit tests passing, TypeScript, Biome, build, and diff checks passing. The visual admin test was blocked before execution because `DATABASE_URL` was required.
 
-- `bun run test src/features/ai-keys/key-pool.test.ts src/features/ai-keys/gemini-validation.test.ts` — RED as expected: 2 failed before implementation because `recordValidationFailure` was not called.
-- `bun run test src/features/ai-keys/repository.test.ts src/features/ai-keys/key-pool.test.ts src/features/ai-keys/gemini-validation.test.ts src/orpc/router/admin.test.ts src/features/admin/ai-keys-panel.test.tsx` — PASS, 38 tests.
-- `bun x tsc --noEmit` — PASS.
-- `bun run test` — PASS, 46 files / 223 tests.
-- `bun run check` — PASS, 161 files.
-- `bun run build` — PASS; existing chunk-size warning only.
-- `git diff --check` — PASS.
-- `bun run test:visual -- tests/admin-ai-keys.spec.ts` — BLOCKED before test execution: `DATABASE_URL is required for Playwright`.
+## Final blocker fix
 
-## Notes
+## Credential replacement race guard
 
-- The pre-existing modification to `.superpowers/sdd/task-2-report.md` was preserved and excluded from the final-fixes commit.
-- Public projections remain explicit; no credential fields were added to returned data or tests.
+- Added `ai_provider_key.credential_revision` as a private, monotonically increasing integer with additive migration `0006_classy_garia.sql`.
+- Included the revision in private validation/runtime candidates and incremented it atomically on credential replacement.
+- Required all success/failure and validation completion writes to match both key ID and expected credential revision, while retaining attempt-time ordering. Existing rows with a newer revision make stale completions harmless no-ops.
+- Kept the public key projection unchanged; neither plaintext credentials nor credential revisions are exposed.
+- Added regression coverage for stale runtime success, runtime failure, validation success, and validation failure completions after replacement.
+
+## Verification (2026-07-12)
+
+- Focused schema/repository/key-pool/admin/autofill validation: `bun run test src/db/schema.test.ts src/features/ai-keys/repository.test.ts src/features/ai-keys/key-pool.test.ts src/features/ai-keys/gemini-validation.test.ts src/orpc/router/admin.test.ts src/features/admin/ai-keys-panel.test.tsx src/features/autofill/extract.test.ts` — PASS, 7 files / 56 tests.
+- Full unit suite: `bun run test` — PASS, 46 files / 227 tests.
+- TypeScript: `bun x tsc --noEmit` — PASS.
+- Biome: `bun run check` — PASS, 161 files checked, no fixes applied.
+- Production build: `bun run build` — PASS. Vite emitted the existing informational >500 kB chunk warning.
+- Diff whitespace validation: `git diff --check` — PASS.

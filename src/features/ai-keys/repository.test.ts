@@ -19,7 +19,11 @@ const cipher = {
 };
 
 function rotationDatabase(
-	rows: Array<{ id: string; encryptedSecret: string }>,
+	rows: Array<{
+		id: string;
+		encryptedSecret: string;
+		credentialRevision: number;
+	}>,
 ) {
 	let cursor = 0n;
 	let release = Promise.resolve();
@@ -109,19 +113,23 @@ describe("createDrizzleAiKeyRepository", () => {
 
 	test("rotates candidates and decrypts only the server candidate shape", async () => {
 		const fake = rotationDatabase(
-			["A", "B", "C"].map((id) => ({ id, encryptedSecret: `enc:key-${id}` })),
+			["A", "B", "C"].map((id) => ({
+				id,
+				encryptedSecret: `enc:key-${id}`,
+				credentialRevision: 1,
+			})),
 		);
 		const repository = createDrizzleAiKeyRepository(fake.database, cipher);
 
 		expect(await repository.selectCandidates(new Date())).toEqual([
-			{ id: "A", apiKey: "key-A" },
-			{ id: "B", apiKey: "key-B" },
-			{ id: "C", apiKey: "key-C" },
+			{ id: "A", apiKey: "key-A", credentialRevision: 1 },
+			{ id: "B", apiKey: "key-B", credentialRevision: 1 },
+			{ id: "C", apiKey: "key-C", credentialRevision: 1 },
 		]);
 		expect(await repository.selectCandidates(new Date())).toEqual([
-			{ id: "B", apiKey: "key-B" },
-			{ id: "C", apiKey: "key-C" },
-			{ id: "A", apiKey: "key-A" },
+			{ id: "B", apiKey: "key-B", credentialRevision: 1 },
+			{ id: "C", apiKey: "key-C", credentialRevision: 1 },
+			{ id: "A", apiKey: "key-A", credentialRevision: 1 },
 		]);
 		expect(
 			new Set((await repository.selectCandidates(new Date())).map((x) => x.id))
@@ -131,7 +139,11 @@ describe("createDrizzleAiKeyRepository", () => {
 
 	test("serializes overlapping selections to distinct cursor values", async () => {
 		const fake = rotationDatabase(
-			["A", "B", "C"].map((id) => ({ id, encryptedSecret: `enc:${id}` })),
+			["A", "B", "C"].map((id) => ({
+				id,
+				encryptedSecret: `enc:${id}`,
+				credentialRevision: 1,
+			})),
 		);
 		const repository = createDrizzleAiKeyRepository(fake.database, cipher);
 		const [first, second] = await Promise.all([
@@ -148,13 +160,15 @@ describe("createDrizzleAiKeyRepository", () => {
 
 	test("binds the complete candidate eligibility policy", async () => {
 		const fake = rotationDatabase([
-			{ id: "eligible", encryptedSecret: "enc:usable" },
+			{ id: "eligible", encryptedSecret: "enc:usable", credentialRevision: 1 },
 		]);
 		const repository = createDrizzleAiKeyRepository(fake.database, cipher);
 		const candidates = await repository.selectCandidates(
 			new Date("2026-07-11T00:00:00Z"),
 		);
-		expect(candidates).toEqual([{ id: "eligible", apiKey: "usable" }]);
+		expect(candidates).toEqual([
+			{ id: "eligible", apiKey: "usable", credentialRevision: 1 },
+		]);
 		const query = new PgDialect().sqlToQuery(fake.predicates[0].getSQL());
 		expect(query.sql).toMatch(/"provider" = \$1/);
 		expect(query.sql).toMatch(/"enabled" = \$2/);
@@ -202,9 +216,10 @@ describe("createDrizzleAiKeyRepository", () => {
 		};
 		const repository = createDrizzleAiKeyRepository(database as never, cipher);
 		const now = new Date("2026-07-11T00:00:00Z");
-		await repository.recordSuccess("A", now);
+		await repository.recordSuccess("A", 1, now);
 		await repository.recordFailure(
 			"A",
+			1,
 			{
 				validationStatus: "transient_failure",
 				cooldownUntil: new Date("2026-07-11T00:01:00Z"),
@@ -215,6 +230,7 @@ describe("createDrizzleAiKeyRepository", () => {
 		);
 		await repository.recordValidationFailure(
 			"A",
+			1,
 			{
 				validationStatus: "invalid",
 				enabled: false,
@@ -263,10 +279,10 @@ describe("createDrizzleAiKeyRepository", () => {
 		const older = new Date("2026-07-11T00:00:00Z");
 		const newer = new Date("2026-07-11T00:01:00Z");
 
-		await repository.recordSuccess("A", older);
-		await repository.recordFailure("A", { failureCode: "OLD" }, older);
-		await repository.recordSuccess("A", newer);
-		await repository.recordFailure("A", { failureCode: "NEW" }, newer);
+		await repository.recordSuccess("A", 7, older);
+		await repository.recordFailure("A", 7, { failureCode: "OLD" }, older);
+		await repository.recordSuccess("A", 7, newer);
+		await repository.recordFailure("A", 7, { failureCode: "NEW" }, newer);
 
 		for (const [index, predicate] of predicates.entries()) {
 			const query = new PgDialect().sqlToQuery(predicate.getSQL());
@@ -280,7 +296,40 @@ describe("createDrizzleAiKeyRepository", () => {
 			expect(query.params.filter((value) => value === attemptAt)).toHaveLength(
 				2,
 			);
+			expect(query.sql).toMatch(/"credential_revision" =/);
+			expect(query.params).toContain(7);
 		}
+	});
+
+	test.each([
+		"recordSuccess",
+		"recordFailure",
+		"recordValidationSuccess",
+		"recordValidationFailure",
+	] as const)("ignores stale %s completion after credential replacement", async (method) => {
+		const predicates: SQL[] = [];
+		const database = {
+			update: () => ({
+				set: () => ({
+					where: (predicate: SQL) => {
+						predicates.push(predicate);
+						return { returning: async () => [] };
+					},
+				}),
+			}),
+			select: () => ({
+				from: () => ({ where: () => ({ limit: async () => [{ id: "A" }] }) }),
+			}),
+		};
+		const repository = createDrizzleAiKeyRepository(database as never, cipher);
+		const now = new Date("2026-07-11T00:00:00Z");
+		if (method === "recordSuccess") await repository.recordSuccess("A", 1, now);
+		else if (method === "recordValidationSuccess")
+			await repository.recordValidationSuccess("A", 1, now);
+		else await repository[method]("A", 1, { failureCode: "STALE" }, now);
+		const query = new PgDialect().sqlToQuery(predicates[0].getSQL());
+		expect(query.sql).toMatch(/"credential_revision" =/);
+		expect(query.params).toContain(1);
 	});
 
 	test("validation success atomically re-enables and clears failure health", async () => {
@@ -296,7 +345,7 @@ describe("createDrizzleAiKeyRepository", () => {
 		const repository = createDrizzleAiKeyRepository(database as never, cipher);
 		const now = new Date("2026-07-11T00:00:00Z");
 
-		await repository.recordValidationSuccess("A", now);
+		await repository.recordValidationSuccess("A", 1, now);
 
 		expect(updates).toEqual([
 			expect.objectContaining({
