@@ -67,7 +67,7 @@ function MetricCard({
 				<p className="mt-2 text-sm text-muted-foreground">{detail}</p>
 				<Link
 					className="mt-4 inline-flex items-center gap-2 text-sm font-semibold"
-					to={to as "/admin"}
+					to={to}
 				>
 					{action}
 					<ArrowRight aria-hidden="true" className="size-4" />

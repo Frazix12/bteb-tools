@@ -67,6 +67,16 @@ describe("admin overview", () => {
 		expect(
 			screen.getByRole("link", { name: /Manage users/ }).getAttribute("href"),
 		).toBe("/admin/users");
+		for (const [name, href] of [
+			[/Manage documents/, "/admin/documents"],
+			[/Manage presets/, "/admin/presets"],
+			[/Review usage/, "/admin/usage"],
+			[/Manage AI keys/, "/admin/ai-keys"],
+		] as const) {
+			expect(screen.getByRole("link", { name }).getAttribute("href")).toBe(
+				href,
+			);
+		}
 		expect(screen.getByText(/1 enabled preset/)).toBeTruthy();
 		expect(screen.getByText(/1 AI key/)).toBeTruthy();
 		expect(screen.getByText(/All enabled keys are valid/)).toBeTruthy();

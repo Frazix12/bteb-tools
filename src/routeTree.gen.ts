@@ -25,6 +25,11 @@ import { Route as AuthIndexSheetNewRouteImport } from './routes/_auth/index-shee
 import { Route as AuthIndexSheetIdRouteImport } from './routes/_auth/index-sheet/$id'
 import { Route as AuthCoverPageNewRouteImport } from './routes/_auth/cover-page/new'
 import { Route as AuthCoverPageIdRouteImport } from './routes/_auth/cover-page/$id'
+import { Route as AuthAdminUsersRouteImport } from './routes/_auth/admin/users'
+import { Route as AuthAdminUsageRouteImport } from './routes/_auth/admin/usage'
+import { Route as AuthAdminPresetsRouteImport } from './routes/_auth/admin/presets'
+import { Route as AuthAdminDocumentsRouteImport } from './routes/_auth/admin/documents'
+import { Route as AuthAdminAiKeysRouteImport } from './routes/_auth/admin/ai-keys'
 
 const VisualFixturesRoute = VisualFixturesRouteImport.update({
   id: '/visual-fixtures',
@@ -105,6 +110,31 @@ const AuthCoverPageIdRoute = AuthCoverPageIdRouteImport.update({
   path: '/cover-page/$id',
   getParentRoute: () => AuthRoute,
 } as any)
+const AuthAdminUsersRoute = AuthAdminUsersRouteImport.update({
+  id: '/users',
+  path: '/users',
+  getParentRoute: () => AuthAdminRoute,
+} as any)
+const AuthAdminUsageRoute = AuthAdminUsageRouteImport.update({
+  id: '/usage',
+  path: '/usage',
+  getParentRoute: () => AuthAdminRoute,
+} as any)
+const AuthAdminPresetsRoute = AuthAdminPresetsRouteImport.update({
+  id: '/presets',
+  path: '/presets',
+  getParentRoute: () => AuthAdminRoute,
+} as any)
+const AuthAdminDocumentsRoute = AuthAdminDocumentsRouteImport.update({
+  id: '/documents',
+  path: '/documents',
+  getParentRoute: () => AuthAdminRoute,
+} as any)
+const AuthAdminAiKeysRoute = AuthAdminAiKeysRouteImport.update({
+  id: '/ai-keys',
+  path: '/ai-keys',
+  getParentRoute: () => AuthAdminRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -115,6 +145,11 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof AuthDashboardRoute
   '/presets': typeof AuthPresetsRoute
   '/api/$': typeof ApiSplatRoute
+  '/admin/ai-keys': typeof AuthAdminAiKeysRoute
+  '/admin/documents': typeof AuthAdminDocumentsRoute
+  '/admin/presets': typeof AuthAdminPresetsRoute
+  '/admin/usage': typeof AuthAdminUsageRoute
+  '/admin/users': typeof AuthAdminUsersRoute
   '/cover-page/$id': typeof AuthCoverPageIdRoute
   '/cover-page/new': typeof AuthCoverPageNewRoute
   '/index-sheet/$id': typeof AuthIndexSheetIdRoute
@@ -131,6 +166,11 @@ export interface FileRoutesByTo {
   '/dashboard': typeof AuthDashboardRoute
   '/presets': typeof AuthPresetsRoute
   '/api/$': typeof ApiSplatRoute
+  '/admin/ai-keys': typeof AuthAdminAiKeysRoute
+  '/admin/documents': typeof AuthAdminDocumentsRoute
+  '/admin/presets': typeof AuthAdminPresetsRoute
+  '/admin/usage': typeof AuthAdminUsageRoute
+  '/admin/users': typeof AuthAdminUsersRoute
   '/cover-page/$id': typeof AuthCoverPageIdRoute
   '/cover-page/new': typeof AuthCoverPageNewRoute
   '/index-sheet/$id': typeof AuthIndexSheetIdRoute
@@ -150,6 +190,11 @@ export interface FileRoutesById {
   '/_auth/dashboard': typeof AuthDashboardRoute
   '/_auth/presets': typeof AuthPresetsRoute
   '/api/$': typeof ApiSplatRoute
+  '/_auth/admin/ai-keys': typeof AuthAdminAiKeysRoute
+  '/_auth/admin/documents': typeof AuthAdminDocumentsRoute
+  '/_auth/admin/presets': typeof AuthAdminPresetsRoute
+  '/_auth/admin/usage': typeof AuthAdminUsageRoute
+  '/_auth/admin/users': typeof AuthAdminUsersRoute
   '/_auth/cover-page/$id': typeof AuthCoverPageIdRoute
   '/_auth/cover-page/new': typeof AuthCoverPageNewRoute
   '/_auth/index-sheet/$id': typeof AuthIndexSheetIdRoute
@@ -169,6 +214,11 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/presets'
     | '/api/$'
+    | '/admin/ai-keys'
+    | '/admin/documents'
+    | '/admin/presets'
+    | '/admin/usage'
+    | '/admin/users'
     | '/cover-page/$id'
     | '/cover-page/new'
     | '/index-sheet/$id'
@@ -185,6 +235,11 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/presets'
     | '/api/$'
+    | '/admin/ai-keys'
+    | '/admin/documents'
+    | '/admin/presets'
+    | '/admin/usage'
+    | '/admin/users'
     | '/cover-page/$id'
     | '/cover-page/new'
     | '/index-sheet/$id'
@@ -203,6 +258,11 @@ export interface FileRouteTypes {
     | '/_auth/dashboard'
     | '/_auth/presets'
     | '/api/$'
+    | '/_auth/admin/ai-keys'
+    | '/_auth/admin/documents'
+    | '/_auth/admin/presets'
+    | '/_auth/admin/usage'
+    | '/_auth/admin/users'
     | '/_auth/cover-page/$id'
     | '/_auth/cover-page/new'
     | '/_auth/index-sheet/$id'
@@ -337,14 +397,59 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthCoverPageIdRouteImport
       parentRoute: typeof AuthRoute
     }
+    '/_auth/admin/users': {
+      id: '/_auth/admin/users'
+      path: '/users'
+      fullPath: '/admin/users'
+      preLoaderRoute: typeof AuthAdminUsersRouteImport
+      parentRoute: typeof AuthAdminRoute
+    }
+    '/_auth/admin/usage': {
+      id: '/_auth/admin/usage'
+      path: '/usage'
+      fullPath: '/admin/usage'
+      preLoaderRoute: typeof AuthAdminUsageRouteImport
+      parentRoute: typeof AuthAdminRoute
+    }
+    '/_auth/admin/presets': {
+      id: '/_auth/admin/presets'
+      path: '/presets'
+      fullPath: '/admin/presets'
+      preLoaderRoute: typeof AuthAdminPresetsRouteImport
+      parentRoute: typeof AuthAdminRoute
+    }
+    '/_auth/admin/documents': {
+      id: '/_auth/admin/documents'
+      path: '/documents'
+      fullPath: '/admin/documents'
+      preLoaderRoute: typeof AuthAdminDocumentsRouteImport
+      parentRoute: typeof AuthAdminRoute
+    }
+    '/_auth/admin/ai-keys': {
+      id: '/_auth/admin/ai-keys'
+      path: '/ai-keys'
+      fullPath: '/admin/ai-keys'
+      preLoaderRoute: typeof AuthAdminAiKeysRouteImport
+      parentRoute: typeof AuthAdminRoute
+    }
   }
 }
 
 interface AuthAdminRouteChildren {
+  AuthAdminAiKeysRoute: typeof AuthAdminAiKeysRoute
+  AuthAdminDocumentsRoute: typeof AuthAdminDocumentsRoute
+  AuthAdminPresetsRoute: typeof AuthAdminPresetsRoute
+  AuthAdminUsageRoute: typeof AuthAdminUsageRoute
+  AuthAdminUsersRoute: typeof AuthAdminUsersRoute
   AuthAdminIndexRoute: typeof AuthAdminIndexRoute
 }
 
 const AuthAdminRouteChildren: AuthAdminRouteChildren = {
+  AuthAdminAiKeysRoute: AuthAdminAiKeysRoute,
+  AuthAdminDocumentsRoute: AuthAdminDocumentsRoute,
+  AuthAdminPresetsRoute: AuthAdminPresetsRoute,
+  AuthAdminUsageRoute: AuthAdminUsageRoute,
+  AuthAdminUsersRoute: AuthAdminUsersRoute,
   AuthAdminIndexRoute: AuthAdminIndexRoute,
 }
 
