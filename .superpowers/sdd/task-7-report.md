@@ -16,3 +16,13 @@ Implemented dedicated `/admin/ai-keys` and `/admin/presets` pages. Each route fe
 
 - The prescribed initial focused test run passed because panel behavior tests already existed; the missing behavior was isolated to placeholder route integration.
 - `src/features/admin/use-admin-mutation.ts` had pre-existing concurrent changes for structured server fields. It was formatted for the repository check but deliberately excluded from this task's commit.
+
+## Review Fixes
+
+- Corrected structured validation extraction to use the actual oRPC shape at `error.data.fieldErrors`.
+- Added hook coverage proving field errors survive the mutation boundary and panel coverage proving they are associated with labelled inputs.
+- Added focused preset coverage for complete edit hydration, valid submission, malformed JSON, schema mismatch, toggle, and confirmed deletion.
+- Extended AI-key coverage to explicitly exercise both enable and disable paths; create, replace, validation, validate-all, and confirmed deletion remain covered.
+- AI-key mutations now invalidate only the AI-key list. They do not invalidate admin summary because no current `Summary` field represents AI-key state.
+
+Review verification: `bun run check` passed across 189 files; the focused Vitest command passed 4 files and 13 tests; `bun x tsc --noEmit` passed; `bun run build` completed successfully with the existing large-chunk advisory.

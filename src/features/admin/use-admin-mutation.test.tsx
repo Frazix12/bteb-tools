@@ -33,6 +33,7 @@ function Harness({
 				save
 			</button>
 			<span>{action.message?.text}</span>
+			<span data-testid="slug-error">{action.message?.fields?.slug}</span>
 		</>
 	);
 }
@@ -77,4 +78,17 @@ test("shows mutation errors and does not invalidate", async () => {
 	fireEvent.click(screen.getByRole("button", { name: "save" }));
 	await waitFor(() => expect(screen.getByText("Denied")).toBeTruthy());
 	expect(invalidate).not.toHaveBeenCalled();
+});
+test("preserves oRPC field errors for labelled form inputs", async () => {
+	setup(async () => {
+		throw Object.assign(new Error("Invalid preset"), {
+			data: { fieldErrors: { slug: "Slug is already in use." } },
+		});
+	});
+	fireEvent.click(screen.getByRole("button", { name: "save" }));
+	await waitFor(() =>
+		expect(screen.getByTestId("slug-error").textContent).toBe(
+			"Slug is already in use.",
+		),
+	);
 });

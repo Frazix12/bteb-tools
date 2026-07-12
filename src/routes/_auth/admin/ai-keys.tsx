@@ -9,7 +9,6 @@ import {
 import {
 	adminAiKeysOptions,
 	invalidateAdminAiKeys,
-	invalidateAdminSummary,
 } from "#/features/admin/admin-queries";
 import { AiKeysPanel } from "#/features/admin/ai-keys-panel";
 import type { AdminAiKey } from "#/features/admin/types";
@@ -58,12 +57,7 @@ function AiKeysRoute() {
 	const keys = useQuery(adminAiKeysOptions());
 	const action = useAdminMutation({
 		mutationFn: runAction,
-		invalidate: async (client) => {
-			await Promise.all([
-				invalidateAdminAiKeys(client),
-				invalidateAdminSummary(client),
-			]);
-		},
+		invalidate: invalidateAdminAiKeys,
 		successMessage: "AI key changes saved.",
 	});
 	const toggle = (key: AdminAiKey, enabled: boolean) =>

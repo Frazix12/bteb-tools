@@ -100,3 +100,10 @@ test("marks invalid and cooling keys and prevents enabling invalid keys", () => 
 		).disabled,
 	).toBe(true);
 });
+
+test("enables a valid disabled key", () => {
+	const disabled = { ...key, enabled: false };
+	render(<AiKeysPanel keys={[disabled]} pending={false} {...callbacks} />);
+	fireEvent.click(screen.getByRole("button", { name: "Enable Primary" }));
+	expect(callbacks.onToggle).toHaveBeenCalledWith(disabled, true);
+});
