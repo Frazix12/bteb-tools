@@ -29,7 +29,12 @@ export function UsersPanel({
 			description="Review accounts, activity, and administrative access."
 			icon={<Users aria-hidden="true" className="size-5" />}
 		>
-			<div className="overflow-x-auto rounded-xl border border-[var(--line)]">
+			<section
+				aria-label="Users table"
+				className="overflow-x-auto rounded-xl border border-[var(--line)]"
+				// biome-ignore lint/a11y/noNoninteractiveTabindex: Scrollable tables must be keyboard focusable.
+				tabIndex={0}
+			>
 				<table data-admin-table className={tableClass}>
 					<thead>
 						<tr>
@@ -93,7 +98,7 @@ export function UsersPanel({
 						))}
 					</tbody>
 				</table>
-			</div>
+			</section>
 			<div
 				data-admin-actions
 				className="flex flex-wrap items-center justify-between gap-3"

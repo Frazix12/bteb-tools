@@ -24,7 +24,12 @@ export function DataPanel({ summary, data, onDelete, onPage, pending }: Props) {
 				<AdminStat label="Enabled presets" value={summary.enabledPresets} />
 				<AdminStat label="AI requests" value={summary.aiRequests} />
 			</div>
-			<div className="overflow-x-auto rounded-xl border border-[var(--line)]">
+			<section
+				aria-label="Documents table"
+				className="overflow-x-auto rounded-xl border border-[var(--line)]"
+				// biome-ignore lint/a11y/noNoninteractiveTabindex: Scrollable tables must be keyboard focusable.
+				tabIndex={0}
+			>
 				<table data-admin-table className={tableClass}>
 					<thead>
 						<tr>
@@ -70,7 +75,7 @@ export function DataPanel({ summary, data, onDelete, onPage, pending }: Props) {
 						))}
 					</tbody>
 				</table>
-			</div>
+			</section>
 			<div className="flex justify-end">
 				<Button
 					variant="outline"
