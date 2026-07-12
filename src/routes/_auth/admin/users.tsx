@@ -1,7 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useLoaderData } from "@tanstack/react-router";
 import { useState } from "react";
-import { getBootstrapAdminEmail } from "#/config/bootstrap-admin";
 import {
 	AdminMessage,
 	AdminPageError,
@@ -13,15 +12,22 @@ import {
 	invalidateAdminSummary,
 	invalidateAdminUsers,
 } from "#/features/admin/admin-queries";
+import { getAdminBootstrapEmail } from "#/features/admin/bootstrap-admin-email";
 import { useAdminMutation } from "#/features/admin/use-admin-mutation";
 import { UsersPanel } from "#/features/admin/users-panel";
 import { orpc } from "#/orpc/client";
 
 export const Route = createFileRoute("/_auth/admin/users")({
+	loader: usersLoader,
 	component: UsersRoute,
 });
 
+export async function usersLoader() {
+	return { bootstrapEmail: await getAdminBootstrapEmail() };
+}
+
 export function UsersRoute() {
+	const { bootstrapEmail } = useLoaderData({ from: "/_auth/admin/users" });
 	const [page, setPage] = useState(1);
 	const query = useQuery(adminUsersOptions(page));
 	const action = useAdminMutation({
@@ -50,7 +56,7 @@ export function UsersRoute() {
 				<UsersPanel
 					data={query.data}
 					pending={action.isPending}
-					bootstrapEmail={getBootstrapAdminEmail()}
+					bootstrapEmail={bootstrapEmail}
 					onPage={(_, next) => setPage(next)}
 					onRole={(target, role) => action.mutate({ userId: target.id, role })}
 				/>

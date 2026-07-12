@@ -7,10 +7,13 @@ const mocks = vi.hoisted(() => ({
 	usersOptions: vi.fn((page: number) => ({ page })),
 	mutate: vi.fn(),
 	useAdminMutation: vi.fn(),
+	useLoaderData: vi.fn(),
+	getAdminBootstrapEmail: vi.fn(),
 }));
 vi.mock("@tanstack/react-query", () => ({ useQuery: mocks.useQuery }));
 vi.mock("@tanstack/react-router", () => ({
 	createFileRoute: () => (options: unknown) => options,
+	useLoaderData: mocks.useLoaderData,
 }));
 vi.mock("#/features/admin/admin-queries", () => ({
 	adminUsersOptions: mocks.usersOptions,
@@ -46,20 +49,30 @@ vi.mock("#/features/admin/admin-page", () => ({
 	AdminPageError: () => null,
 	AdminMessage: () => null,
 }));
-vi.mock("#/config/bootstrap-admin", () => ({
-	getBootstrapAdminEmail: () => "configured@example.com",
+vi.mock("#/features/admin/bootstrap-admin-email", () => ({
+	getAdminBootstrapEmail: mocks.getAdminBootstrapEmail,
 }));
 vi.mock("#/orpc/client", () => ({
 	orpc: { admin: { users: { setRole: { call: vi.fn() } } } },
 }));
 
-import { UsersRoute } from "./users";
+import { UsersRoute, usersLoader } from "./users";
 
 afterEach(() => {
 	cleanup();
 	vi.clearAllMocks();
 });
-test("fetches only users, owns pagination and role mutation, and protects configured bootstrap identity", () => {
+test("loads configured bootstrap identity through the server boundary", async () => {
+	mocks.getAdminBootstrapEmail.mockResolvedValue("configured@example.com");
+	await expect(usersLoader()).resolves.toEqual({
+		bootstrapEmail: "configured@example.com",
+	});
+	expect(mocks.getAdminBootstrapEmail).toHaveBeenCalledOnce();
+});
+test("fetches only users, owns pagination and role mutation, and uses serialized bootstrap identity", () => {
+	mocks.useLoaderData.mockReturnValue({
+		bootstrapEmail: "configured@example.com",
+	});
 	mocks.useQuery.mockReturnValue({
 		data: { items: [], total: 0, page: 1, pageSize: 20 },
 		isPending: false,

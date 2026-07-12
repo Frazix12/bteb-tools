@@ -15,6 +15,15 @@ Fresh final run after renaming the route test:
 
 - `bun run generate-routes && bun run test src/features/admin/admin-dashboard.test.tsx src/features/admin/admin-queries.test.ts src/features/admin/use-admin-mutation.test.tsx src/routes/_auth/admin/-users.test.tsx src/orpc/router/admin.test.ts && bun run check && bun x tsc --noEmit` — pass; 5 test files and 18 tests passed, Biome checked 187 files, TypeScript exited successfully.
 
+## SSR boundary follow-up
+
+Bootstrap-admin email resolution now lives in `getAdminBootstrapEmail`, a TanStack `createServerFn`. The Users loader serializes its result and the browser component reads only loader data; it no longer imports or calls `getBootstrapAdminEmail`.
+
+- `bun run generate-routes` — pass
+- `bun run test src/routes/_auth/admin/-users.test.tsx src/features/admin/admin-dashboard.test.tsx src/features/admin/admin-queries.test.ts src/features/admin/use-admin-mutation.test.tsx src/orpc/router/admin.test.ts` — 5 files, 19 tests passed
+- `bun x tsc --noEmit` — pass
+- `bun run check` — 188 files checked, pass
+
 ## Self-review
 
 - Users fetches only the users list and invalidates users plus summary after a role change.
