@@ -71,7 +71,9 @@ export function createKeyCipher(rootSecret: string): KeyCipher {
 				throw new Error("Invalid encrypted AI key payload.");
 			}
 
-			const decipher = createDecipheriv("aes-256-gcm", encryptionKey, nonce);
+			const decipher = createDecipheriv("aes-256-gcm", encryptionKey, nonce, {
+				authTagLength: TAG_LENGTH,
+			});
 			decipher.setAuthTag(tag);
 			return Buffer.concat([
 				decipher.update(ciphertext),
