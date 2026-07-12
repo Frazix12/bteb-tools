@@ -219,9 +219,22 @@ describe("admin procedures", () => {
 		await expect(
 			client.users.list({ page: 0, pageSize: 101 }),
 		).rejects.toMatchObject({ code: "BAD_REQUEST" });
-		await expect(
-			client.presets.create({ ...write, data: {} } as never),
-		).rejects.toMatchObject({ code: "BAD_REQUEST", data: expect.anything() });
+		const malformed = await client.presets
+			.create({ ...write, data: {} } as never)
+			.catch((error: unknown) => error);
+		const value = malformed as { data?: unknown };
+		expect(malformed).toMatchObject({
+			code: "BAD_REQUEST",
+			data: {
+				issues: expect.arrayContaining([
+					expect.objectContaining({
+						path: ["data", "schemaVersion"],
+						message: "Invalid input: expected 1",
+					}),
+				]),
+			},
+		});
+		expect(value.data).not.toHaveProperty("fieldErrors");
 	});
 });
 

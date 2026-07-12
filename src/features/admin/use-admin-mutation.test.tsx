@@ -82,7 +82,14 @@ test("shows mutation errors and does not invalidate", async () => {
 test("preserves oRPC field errors for labelled form inputs", async () => {
 	setup(async () => {
 		throw Object.assign(new Error("Invalid preset"), {
-			data: { fieldErrors: { slug: "Slug is already in use." } },
+			data: {
+				issues: [
+					{
+						path: ["slug"],
+						message: "Slug is already in use.",
+					},
+				],
+			},
 		});
 	});
 	fireEvent.click(screen.getByRole("button", { name: "save" }));
@@ -91,4 +98,15 @@ test("preserves oRPC field errors for labelled form inputs", async () => {
 			"Slug is already in use.",
 		),
 	);
+});
+
+test("ignores malformed field error payloads", async () => {
+	setup(async () => {
+		throw Object.assign(new Error("Invalid preset"), {
+			data: { fieldErrors: { slug: 42 } },
+		});
+	});
+	fireEvent.click(screen.getByRole("button", { name: "save" }));
+	await waitFor(() => expect(screen.getByText("Invalid preset")).toBeTruthy());
+	expect(screen.getByTestId("slug-error").textContent).toBe("");
 });

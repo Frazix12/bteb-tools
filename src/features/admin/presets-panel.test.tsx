@@ -118,3 +118,17 @@ test("associates server fields with labelled inputs and confirms row actions", (
 	fireEvent.click(screen.getByRole("button", { name: "Delete permanently" }));
 	expect(callbacks.onDelete).toHaveBeenCalledWith(preset.id);
 });
+
+test("enables a disabled preset", () => {
+	const disabled = { ...preset, enabled: false };
+	render(
+		<PresetsPanel
+			data={{ ...data, items: [disabled] }}
+			pending={false}
+			message={null}
+			{...callbacks}
+		/>,
+	);
+	fireEvent.click(screen.getByRole("button", { name: "Enable Lab Cover" }));
+	expect(callbacks.onToggle).toHaveBeenCalledWith(disabled, true);
+});
