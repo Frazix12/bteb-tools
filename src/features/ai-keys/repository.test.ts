@@ -229,6 +229,34 @@ describe("createDrizzleAiKeyRepository", () => {
 		});
 	});
 
+	test("validation success atomically re-enables and clears failure health", async () => {
+		const updates: Record<string, unknown>[] = [];
+		const database = {
+			update: () => ({
+				set: (value: Record<string, unknown>) => {
+					updates.push(value);
+					return { where: () => ({ returning: async () => [{ id: "A" }] }) };
+				},
+			}),
+		};
+		const repository = createDrizzleAiKeyRepository(database as never, cipher);
+		const now = new Date("2026-07-11T00:00:00Z");
+
+		await repository.recordValidationSuccess("A", now);
+
+		expect(updates).toEqual([
+			expect.objectContaining({
+				enabled: true,
+				validationStatus: "valid",
+				cooldownUntil: null,
+				lastValidatedAt: now,
+				lastFailureAt: null,
+				lastFailureCode: null,
+				lastFailureMessage: null,
+			}),
+		]);
+	});
+
 	test("lists only the explicit public projection", async () => {
 		const rows = [
 			{

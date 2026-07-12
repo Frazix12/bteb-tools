@@ -35,6 +35,7 @@ function setup(
 	const repo = {
 		selectCandidates: vi.fn(async () => candidates),
 		recordSuccess: vi.fn(async () => {}),
+		recordValidationSuccess: vi.fn(async () => {}),
 		recordFailure: vi.fn(async () => {}),
 		getForValidation: vi.fn(async (id: string) =>
 			required(candidates.find((candidate) => candidate.id === id)),
@@ -103,12 +104,14 @@ describe("Gemini key pool", () => {
 	});
 
 	test("stops immediately on request failures", async () => {
-		const { pool } = setup(undefined, "fallback");
+		const { pool, repo } = setup(undefined, "fallback");
 		const execute = vi.fn(async () => {
 			throw { kind: "request" };
 		});
 		await expect(pool.run(execute)).rejects.toEqual({ kind: "request" });
 		expect(execute).toHaveBeenCalledTimes(1);
+		expect(repo.recordFailure).not.toHaveBeenCalled();
+		expect(repo.recordSuccess).not.toHaveBeenCalled();
 	});
 
 	test("attempts duplicate candidate ids once and fallback once", async () => {
@@ -175,7 +178,7 @@ describe("Gemini key pool", () => {
 				}),
 				now,
 			);
-		else expect(repo.recordSuccess).toHaveBeenCalledWith("A", now);
+		else expect(repo.recordValidationSuccess).toHaveBeenCalledWith("A", now);
 	});
 
 	test("validateAll limits validation concurrency to three", async () => {

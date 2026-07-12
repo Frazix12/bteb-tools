@@ -218,6 +218,23 @@ export function createDrizzleAiKeyRepository(
 				.returning({ id: aiProviderKey.id });
 			if (!row) throw new AiKeyNotFoundError();
 		},
+		async recordValidationSuccess(id, now) {
+			const [row] = await database
+				.update(aiProviderKey)
+				.set({
+					enabled: true,
+					validationStatus: "valid",
+					cooldownUntil: null,
+					lastSuccessAt: now,
+					lastValidatedAt: now,
+					lastFailureAt: null,
+					lastFailureCode: null,
+					lastFailureMessage: null,
+				})
+				.where(eq(aiProviderKey.id, id))
+				.returning({ id: aiProviderKey.id });
+			if (!row) throw new AiKeyNotFoundError();
+		},
 		async recordFailure(id, update: KeyHealthUpdate, now) {
 			const [row] = await database
 				.update(aiProviderKey)

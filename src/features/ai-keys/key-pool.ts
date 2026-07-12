@@ -51,7 +51,7 @@ export function createGeminiKeyPool(deps: Dependencies): GeminiKeyPool {
 		const checkedAt = deps.now();
 		try {
 			await deps.validateCredential(candidate.apiKey);
-			await deps.repo.recordSuccess(id, checkedAt);
+			await deps.repo.recordValidationSuccess(id, checkedAt);
 		} catch (error) {
 			const failure = deps.classifier(error, checkedAt);
 			await deps.repo.recordFailure(id, updateFor(failure), checkedAt);
@@ -72,12 +72,12 @@ export function createGeminiKeyPool(deps: Dependencies): GeminiKeyPool {
 					return result;
 				} catch (error) {
 					const failure = deps.classifier(error, attemptAt);
+					if (failure.kind === "request") throw error;
 					await deps.repo.recordFailure(
 						candidate.id,
 						updateFor(failure),
 						attemptAt,
 					);
-					if (failure.kind === "request") throw error;
 					lastError = error;
 				}
 			}
