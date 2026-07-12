@@ -18,6 +18,7 @@ import { Route as ApiSplatRouteImport } from './routes/api.$'
 import { Route as AuthPresetsRouteImport } from './routes/_auth/presets'
 import { Route as AuthDashboardRouteImport } from './routes/_auth/dashboard'
 import { Route as AuthAdminRouteImport } from './routes/_auth/admin'
+import { Route as AuthAdminIndexRouteImport } from './routes/_auth/admin/index'
 import { Route as ApiRpcSplatRouteImport } from './routes/api.rpc.$'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as AuthIndexSheetNewRouteImport } from './routes/_auth/index-sheet/new'
@@ -69,6 +70,11 @@ const AuthAdminRoute = AuthAdminRouteImport.update({
   path: '/admin',
   getParentRoute: () => AuthRoute,
 } as any)
+const AuthAdminIndexRoute = AuthAdminIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AuthAdminRoute,
+} as any)
 const ApiRpcSplatRoute = ApiRpcSplatRouteImport.update({
   id: '/api/rpc/$',
   path: '/api/rpc/$',
@@ -105,7 +111,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
   '/visual-fixtures': typeof VisualFixturesRoute
-  '/admin': typeof AuthAdminRoute
+  '/admin': typeof AuthAdminRouteWithChildren
   '/dashboard': typeof AuthDashboardRoute
   '/presets': typeof AuthPresetsRoute
   '/api/$': typeof ApiSplatRoute
@@ -115,13 +121,13 @@ export interface FileRoutesByFullPath {
   '/index-sheet/new': typeof AuthIndexSheetNewRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/rpc/$': typeof ApiRpcSplatRoute
+  '/admin/': typeof AuthAdminIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
   '/visual-fixtures': typeof VisualFixturesRoute
-  '/admin': typeof AuthAdminRoute
   '/dashboard': typeof AuthDashboardRoute
   '/presets': typeof AuthPresetsRoute
   '/api/$': typeof ApiSplatRoute
@@ -131,6 +137,7 @@ export interface FileRoutesByTo {
   '/index-sheet/new': typeof AuthIndexSheetNewRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/rpc/$': typeof ApiRpcSplatRoute
+  '/admin': typeof AuthAdminIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -139,7 +146,7 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
   '/visual-fixtures': typeof VisualFixturesRoute
-  '/_auth/admin': typeof AuthAdminRoute
+  '/_auth/admin': typeof AuthAdminRouteWithChildren
   '/_auth/dashboard': typeof AuthDashboardRoute
   '/_auth/presets': typeof AuthPresetsRoute
   '/api/$': typeof ApiSplatRoute
@@ -149,6 +156,7 @@ export interface FileRoutesById {
   '/_auth/index-sheet/new': typeof AuthIndexSheetNewRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/rpc/$': typeof ApiRpcSplatRoute
+  '/_auth/admin/': typeof AuthAdminIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -167,13 +175,13 @@ export interface FileRouteTypes {
     | '/index-sheet/new'
     | '/api/auth/$'
     | '/api/rpc/$'
+    | '/admin/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/login'
     | '/signup'
     | '/visual-fixtures'
-    | '/admin'
     | '/dashboard'
     | '/presets'
     | '/api/$'
@@ -183,6 +191,7 @@ export interface FileRouteTypes {
     | '/index-sheet/new'
     | '/api/auth/$'
     | '/api/rpc/$'
+    | '/admin'
   id:
     | '__root__'
     | '/'
@@ -200,6 +209,7 @@ export interface FileRouteTypes {
     | '/_auth/index-sheet/new'
     | '/api/auth/$'
     | '/api/rpc/$'
+    | '/_auth/admin/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -278,6 +288,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthAdminRouteImport
       parentRoute: typeof AuthRoute
     }
+    '/_auth/admin/': {
+      id: '/_auth/admin/'
+      path: '/'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AuthAdminIndexRouteImport
+      parentRoute: typeof AuthAdminRoute
+    }
     '/api/rpc/$': {
       id: '/api/rpc/$'
       path: '/api/rpc/$'
@@ -323,8 +340,20 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AuthAdminRouteChildren {
+  AuthAdminIndexRoute: typeof AuthAdminIndexRoute
+}
+
+const AuthAdminRouteChildren: AuthAdminRouteChildren = {
+  AuthAdminIndexRoute: AuthAdminIndexRoute,
+}
+
+const AuthAdminRouteWithChildren = AuthAdminRoute._addFileChildren(
+  AuthAdminRouteChildren,
+)
+
 interface AuthRouteChildren {
-  AuthAdminRoute: typeof AuthAdminRoute
+  AuthAdminRoute: typeof AuthAdminRouteWithChildren
   AuthDashboardRoute: typeof AuthDashboardRoute
   AuthPresetsRoute: typeof AuthPresetsRoute
   AuthCoverPageIdRoute: typeof AuthCoverPageIdRoute
@@ -334,7 +363,7 @@ interface AuthRouteChildren {
 }
 
 const AuthRouteChildren: AuthRouteChildren = {
-  AuthAdminRoute: AuthAdminRoute,
+  AuthAdminRoute: AuthAdminRouteWithChildren,
   AuthDashboardRoute: AuthDashboardRoute,
   AuthPresetsRoute: AuthPresetsRoute,
   AuthCoverPageIdRoute: AuthCoverPageIdRoute,
@@ -358,12 +387,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { createStart } from '@tanstack/react-start'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-  }
-}
