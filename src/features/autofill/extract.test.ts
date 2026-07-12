@@ -2,6 +2,8 @@ import { describe, expect, test, vi } from "vitest";
 import { z } from "zod";
 
 import { classifyGeminiError } from "#/features/ai-keys/gemini-errors";
+import { createGeminiKeyPool } from "#/features/ai-keys/key-pool";
+import type { AiKeyRepository } from "#/features/ai-keys/types";
 import {
 	CoverAutofillProviderSchema,
 	captureGeminiGeneration,
@@ -17,6 +19,23 @@ const request = {
 	prompt: "private source",
 	schema: CoverAutofillProviderSchema,
 };
+
+function realPool(keys: string[], fallback?: string) {
+	const repo = {
+		selectCandidates: vi.fn(async () =>
+			keys.map((apiKey, index) => ({ id: `${index}`, apiKey })),
+		),
+		recordSuccess: vi.fn(async () => {}),
+		recordFailure: vi.fn(async () => {}),
+	} as unknown as AiKeyRepository;
+	return createGeminiKeyPool({
+		repo,
+		getFallbackKey: () => fallback,
+		now: () => new Date("2026-07-12T00:00:00.000Z"),
+		classifier: classifyGeminiError,
+		validateCredential: vi.fn(async () => {}),
+	});
+}
 
 describe("autofill extraction", () => {
 	test("fails over a quota-limited key and returns the successful key usage", async () => {
@@ -79,6 +98,61 @@ describe("autofill extraction", () => {
 			message: "AI extraction is temporarily unavailable.",
 		});
 		expect(execute).toHaveBeenCalledTimes(1);
+	});
+
+	test("preserves sanitized last-attempt usage after managed and fallback exhaustion", async () => {
+		const runChat = vi.fn(async (_adapter, _request, onUsage) => {
+			onUsage(31, 9);
+			throw Object.assign(new Error("private upstream body with secret"), {
+				status: 503,
+			});
+		});
+		const generate = createGeminiAutofillGenerator({
+			pool: realPool(["managed-secret"], "fallback-secret"),
+			model: "configured-gemini-model",
+			createAdapter: (_model, apiKey) => apiKey,
+			runChat,
+		});
+		const extract = createAutofillExtractor(generate);
+
+		const failure = await extract(
+			"cover_page",
+			"A sufficiently long private input",
+		).catch((error: unknown) => error);
+		expect(failure).toMatchObject({
+			message: "AI extraction is temporarily unavailable.",
+			usage: {
+				model: "configured-gemini-model",
+				inputTokens: 31,
+				outputTokens: 9,
+			},
+		});
+		expect(JSON.stringify(failure)).not.toContain("private upstream body");
+		expect(JSON.stringify(failure)).not.toContain("secret");
+		expect(runChat).toHaveBeenCalledTimes(2);
+	});
+
+	test("real key pool stops after one schema request failure", async () => {
+		const runChat = vi.fn(async () => {
+			throw Object.assign(new Error("private schema body"), {
+				code: "SCHEMA_ERROR",
+			});
+		});
+		const extract = createAutofillExtractor(
+			createGeminiAutofillGenerator({
+				pool: realPool(["first-secret", "second-secret"], "fallback-secret"),
+				model: "configured-gemini-model",
+				createAdapter: (_model, apiKey) => apiKey,
+				runChat,
+			}),
+		);
+
+		await expect(
+			extract("cover_page", "A sufficiently long private input"),
+		).rejects.toMatchObject({
+			message: "AI extraction is temporarily unavailable.",
+		});
+		expect(runChat).toHaveBeenCalledTimes(1);
 	});
 	test("preserves captured usage when Gemini rejects after reporting tokens", async () => {
 		const run = vi.fn(async ({ middleware }) => {

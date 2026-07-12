@@ -1,7 +1,11 @@
 import { chat } from "@tanstack/ai";
 import { createGeminiChat, type GeminiTextModel } from "@tanstack/ai-gemini";
 import { z } from "zod";
-import type { GeminiKeyPool } from "#/features/ai-keys/key-pool";
+import {
+	type GeminiKeyPool,
+	GeminiKeyUnavailableError,
+	geminiSafeFailureMetadata,
+} from "#/features/ai-keys/key-pool";
 import type { DocumentType } from "#/features/documents/types";
 import type { AiGenerationUsage } from "./pricing";
 import { buildAutofillPrompt } from "./prompts";
@@ -249,11 +253,15 @@ export function createGeminiAutofillGenerator({
 			});
 		} catch (error) {
 			if (typeof error === "object" && error !== null) {
-				failedAttemptUsage.set(error, {
+				const usage = {
 					provider: "google",
 					model,
 					inputTokens,
 					outputTokens,
+				} as const;
+				failedAttemptUsage.set(error, usage);
+				Object.defineProperty(error, geminiSafeFailureMetadata, {
+					value: usage,
 				});
 			}
 			throw error;
@@ -263,8 +271,26 @@ export function createGeminiAutofillGenerator({
 			usage: { provider: "google", model, inputTokens, outputTokens },
 		};
 	};
-	return (request) =>
-		pool.run((apiKey) => generateWithGeminiKey(apiKey, request));
+	return async (request) => {
+		try {
+			return await pool.run((apiKey) => generateWithGeminiKey(apiKey, request));
+		} catch (error) {
+			const usage =
+				error instanceof GeminiKeyUnavailableError
+					? error.metadata
+					: typeof error === "object" && error !== null
+						? failedAttemptUsage.get(error)
+						: undefined;
+			throw new ProviderAutofillError(
+				usage ?? {
+					provider: "google",
+					model,
+					inputTokens: null,
+					outputTokens: null,
+				},
+			);
+		}
+	};
 }
 
 let defaultGenerator: Promise<AutofillGenerator> | undefined;

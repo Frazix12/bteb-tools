@@ -7,8 +7,17 @@ export interface GeminiKeyPool {
 	validateAll(): Promise<PublicAiKey[]>;
 }
 
+export type GeminiSafeFailureMetadata = {
+	provider: "google";
+	model: string;
+	inputTokens: number | null;
+	outputTokens: number | null;
+};
+
+export const geminiSafeFailureMetadata = Symbol("geminiSafeFailureMetadata");
+
 export class GeminiKeyUnavailableError extends Error {
-	constructor() {
+	constructor(public readonly metadata?: GeminiSafeFailureMetadata) {
 		super("No usable Gemini API key is available");
 		this.name = "GeminiKeyUnavailableError";
 	}
@@ -82,8 +91,25 @@ export function createGeminiKeyPool(deps: Dependencies): GeminiKeyPool {
 				}
 			}
 			const fallback = deps.getFallbackKey();
-			if (fallback) return execute(fallback);
-			if (lastError) throw new GeminiKeyUnavailableError();
+			if (fallback) {
+				try {
+					return await execute(fallback);
+				} catch (error) {
+					if (deps.classifier(error, deps.now()).kind === "request")
+						throw error;
+					lastError = error;
+				}
+			}
+			if (lastError)
+				throw new GeminiKeyUnavailableError(
+					typeof lastError === "object" && lastError !== null
+						? (
+								lastError as {
+									[geminiSafeFailureMetadata]?: GeminiSafeFailureMetadata;
+								}
+							)[geminiSafeFailureMetadata]
+						: undefined,
+				);
 			throw new GeminiKeyUnavailableError();
 		},
 		validateOne,
