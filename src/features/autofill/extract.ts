@@ -1,7 +1,7 @@
 import { chat } from "@tanstack/ai";
 import { createGeminiChat, type GeminiTextModel } from "@tanstack/ai-gemini";
 import { z } from "zod";
-
+import type { GeminiKeyPool } from "#/features/ai-keys/key-pool";
 import type { DocumentType } from "#/features/documents/types";
 import type { AiGenerationUsage } from "./pricing";
 import { buildAutofillPrompt } from "./prompts";
@@ -215,24 +215,109 @@ export async function captureGeminiGeneration(
 	}
 }
 
-const geminiGenerate: AutofillGenerator = async ({ prompt, schema }) => {
-	const { env } = await import("#/env");
-	if (!env.GEMINI_API_KEY) throw new ProviderAutofillError();
-	const adapter = createGeminiChat(
-		env.GEMINI_MODEL as GeminiTextModel,
-		env.GEMINI_API_KEY,
-	);
-	return captureGeminiGeneration(env.GEMINI_MODEL, ({ middleware }) =>
-		chat({
-			adapter,
-			messages: [{ role: "user", content: prompt }],
-			outputSchema: schema,
-			middleware: middleware.map((item) => ({
-				name: "capture-usage",
-				onUsage: item.onUsage,
-			})),
-		}),
-	);
+type GeminiGeneratorDependencies = {
+	pool: Pick<GeminiKeyPool, "run">;
+	model: string;
+	createAdapter: (model: GeminiTextModel, apiKey: string) => unknown;
+	runChat: (
+		adapter: unknown,
+		request: GenerateRequest,
+		onUsage: (inputTokens: number, outputTokens: number) => void,
+	) => Promise<unknown>;
+};
+
+const failedAttemptUsage = new WeakMap<object, AiGenerationUsage>();
+
+export function createGeminiAutofillGenerator({
+	pool,
+	model,
+	createAdapter,
+	runChat,
+}: GeminiGeneratorDependencies): AutofillGenerator {
+	const generateWithGeminiKey = async (
+		apiKey: string,
+		request: GenerateRequest,
+	): Promise<AutofillGeneration> => {
+		let inputTokens: number | null = null;
+		let outputTokens: number | null = null;
+		const adapter = createAdapter(model as GeminiTextModel, apiKey);
+		let value: unknown;
+		try {
+			value = await runChat(adapter, request, (input, output) => {
+				inputTokens = input;
+				outputTokens = output;
+			});
+		} catch (error) {
+			if (typeof error === "object" && error !== null) {
+				failedAttemptUsage.set(error, {
+					provider: "google",
+					model,
+					inputTokens,
+					outputTokens,
+				});
+			}
+			throw error;
+		}
+		return {
+			value,
+			usage: { provider: "google", model, inputTokens, outputTokens },
+		};
+	};
+	return (request) =>
+		pool.run((apiKey) => generateWithGeminiKey(apiKey, request));
+}
+
+let defaultGenerator: Promise<AutofillGenerator> | undefined;
+async function getDefaultGeminiGenerator(): Promise<AutofillGenerator> {
+	defaultGenerator ??= (async () => {
+		const { env } = await import("#/env");
+		const { classifyGeminiError } = await import(
+			"#/features/ai-keys/gemini-errors"
+		);
+		const { createGeminiKeyPool } = await import("#/features/ai-keys/key-pool");
+		const { drizzleAiKeyRepository } = await import(
+			"#/features/ai-keys/repository"
+		);
+		const pool = createGeminiKeyPool({
+			repo: drizzleAiKeyRepository,
+			getFallbackKey: () => env.GEMINI_API_KEY,
+			now: () => new Date(),
+			classifier: classifyGeminiError,
+			validateCredential: async () => undefined,
+		});
+		return createGeminiAutofillGenerator({
+			pool,
+			model: env.GEMINI_MODEL,
+			createAdapter: createGeminiChat,
+			runChat: (adapter, { prompt, schema }, onUsage) =>
+				chat({
+					adapter: adapter as ReturnType<typeof createGeminiChat>,
+					messages: [{ role: "user", content: prompt }],
+					outputSchema: schema,
+					middleware: [
+						{
+							name: "capture-usage",
+							onUsage: (_context, info) =>
+								onUsage(info.promptTokens, info.completionTokens),
+						},
+					],
+				}),
+		});
+	})();
+	return defaultGenerator;
+}
+
+const geminiGenerate: AutofillGenerator = async (request) => {
+	try {
+		return await (await getDefaultGeminiGenerator())(request);
+	} catch (error) {
+		if (error instanceof ProviderAutofillError) throw error;
+		throw new ProviderAutofillError(
+			typeof error === "object" && error !== null
+				? failedAttemptUsage.get(error)
+				: undefined,
+		);
+	}
 };
 
 export function createAutofillExtractor(

@@ -1,15 +1,85 @@
 import { describe, expect, test, vi } from "vitest";
 import { z } from "zod";
 
+import { classifyGeminiError } from "#/features/ai-keys/gemini-errors";
 import {
+	CoverAutofillProviderSchema,
 	captureGeminiGeneration,
 	createAutofillExtractor,
+	createGeminiAutofillGenerator,
 	IndexAutofillProviderSchema,
 	NoMeaningfulAutofillFieldsError,
 	ProviderAutofillError,
 } from "./extract";
 
+const request = {
+	type: "cover_page" as const,
+	prompt: "private source",
+	schema: CoverAutofillProviderSchema,
+};
+
 describe("autofill extraction", () => {
+	test("fails over a quota-limited key and returns the successful key usage", async () => {
+		const adapters: string[] = [];
+		const pool = {
+			run: async <T>(execute: (apiKey: string) => Promise<T>) => {
+				try {
+					await execute("quota-key");
+				} catch (error) {
+					expect(classifyGeminiError(error, new Date()).kind).toBe("quota");
+				}
+				return execute("working-key");
+			},
+		};
+		const generate = createGeminiAutofillGenerator({
+			pool,
+			model: "gemini-test",
+			createAdapter: (_model, apiKey) => {
+				adapters.push(apiKey);
+				return { apiKey };
+			},
+			runChat: async (adapter, _request, onUsage) => {
+				if ((adapter as { apiKey: string }).apiKey === "quota-key")
+					throw Object.assign(new Error("secret quota response"), {
+						status: 429,
+					});
+				onUsage(17, 5);
+				return { instituteName: "Institute", docType: "Assignment" };
+			},
+		});
+
+		await expect(generate(request)).resolves.toMatchObject({
+			value: { instituteName: "Institute", docType: "Assignment" },
+			usage: { model: "gemini-test", inputTokens: 17, outputTokens: 5 },
+		});
+		expect(adapters).toEqual(["quota-key", "working-key"]);
+	});
+
+	test("attempts a schema failure once and sanitizes it", async () => {
+		const execute = vi.fn(async (apiKey: string) => {
+			throw Object.assign(new Error(`private schema response for ${apiKey}`), {
+				code: "SCHEMA_ERROR",
+			});
+		});
+		const pool = {
+			run: <T>(operation: (apiKey: string) => Promise<T>) =>
+				operation("only-key"),
+		};
+		const generate = createGeminiAutofillGenerator({
+			pool,
+			model: "gemini-test",
+			createAdapter: (_model, apiKey) => apiKey,
+			runChat: (adapter) => execute(adapter as string),
+		});
+		const extract = createAutofillExtractor(generate);
+
+		await expect(
+			extract("cover_page", "A sufficiently long input"),
+		).rejects.toMatchObject({
+			message: "AI extraction is temporarily unavailable.",
+		});
+		expect(execute).toHaveBeenCalledTimes(1);
+	});
 	test("preserves captured usage when Gemini rejects after reporting tokens", async () => {
 		const run = vi.fn(async ({ middleware }) => {
 			middleware[0].onUsage({}, { promptTokens: 123, completionTokens: 45 });

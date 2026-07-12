@@ -131,7 +131,7 @@ describe("autofill procedures", () => {
 				consumeQuota: vi
 					.fn()
 					.mockResolvedValue({ allowed: true, remaining: 9, retryAt: null }),
-				extract: vi.fn().mockRejectedValue(new Error("secret upstream detail")),
+				extract: vi.fn().mockRejectedValue(new ProviderAutofillError()),
 			}),
 			{ context: { headers: new Headers() } },
 		);
