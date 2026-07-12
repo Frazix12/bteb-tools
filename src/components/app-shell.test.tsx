@@ -4,6 +4,7 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, test, vi } from "vitest";
 
 let role: "user" | "admin" = "user";
+let pathname = "/dashboard";
 
 vi.mock("@tanstack/react-router", () => ({
 	Link: ({ children, to }: { children: React.ReactNode; to: string }) => (
@@ -23,6 +24,7 @@ vi.mock("@tanstack/react-router", () => ({
 			image: null,
 		},
 	}),
+	useLocation: () => ({ pathname }),
 }));
 
 import { AppShell } from "./app-shell";
@@ -54,8 +56,20 @@ describe("app shell navigation", () => {
 	});
 
 	test("shows admin navigation to administrators", () => {
+		pathname = "/dashboard";
 		role = "admin";
 		render(<AppShell />);
 		expect(screen.getByRole("link", { name: "Admin" })).toBeTruthy();
+	});
+
+	test.each([
+		"/admin",
+		"/admin/users",
+	])("suppresses standard navigation on %s", (path) => {
+		pathname = path;
+		role = "admin";
+		render(<AppShell />);
+		expect(screen.queryByRole("link", { name: "Home" })).toBeNull();
+		expect(document.querySelector("header")).toBeNull();
 	});
 });

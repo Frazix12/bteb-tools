@@ -1,6 +1,7 @@
 import {
 	Link,
 	Outlet,
+	useLocation,
 	useNavigate,
 	useRouteContext,
 	useRouter,
@@ -12,9 +13,13 @@ import { UserMenu } from "#/components/user-menu";
 import { authClient } from "#/lib/auth-client";
 
 export function AppShell() {
+	const { pathname } = useLocation();
 	const navigate = useNavigate();
 	const router = useRouter();
 	const { user } = useRouteContext({ from: "/_auth" });
+	if (pathname === "/admin" || pathname.startsWith("/admin/")) {
+		return <Outlet />;
+	}
 
 	return (
 		<div className="min-h-screen">
