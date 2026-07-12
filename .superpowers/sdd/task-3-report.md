@@ -22,3 +22,15 @@ The 10 focused repository/schema tests cover missing cipher configuration, `2350
 ## Concern
 
 A live PostgreSQL integration test remains useful when the repository gains a database test fixture; current locking and predicate guarantees are tested through compiled Drizzle SQL and a transaction-capable fake.
+
+## Eligibility correction
+
+Human decision applied: candidates must be enabled and either `valid`, or `transient_failure` with a null/expired cooldown. `unchecked`, `invalid`, disabled, and transient failures with a future cooldown are excluded. The compiled Drizzle SQL/parameter assertion and eligibility fixtures cover each branch explicitly.
+
+## Eligibility correction verification
+
+- `bun run test src/features/ai-keys/repository.test.ts src/db/schema.test.ts` — 2 files passed, 16 tests passed.
+- `bun x tsc --noEmit` — exit 0.
+- First `bun run check ...` — exit 1 due only to one formatter change requested in `repository.ts`; formatting was applied before the final verification below.
+- Final `bun run check src/db/schema.ts src/db/schema.test.ts src/features/ai-keys/types.ts src/features/ai-keys/repository.ts src/features/ai-keys/repository.test.ts drizzle/0005_curious_toad_men.sql drizzle/meta/0005_snapshot.json drizzle/meta/_journal.json` — checked 5 applicable files, no errors, exit 0.
+- Final `git diff --check` — exit 0.

@@ -175,10 +175,15 @@ export function createDrizzleAiKeyRepository(
 						and(
 							eq(aiProviderKey.provider, provider),
 							eq(aiProviderKey.enabled, true),
-							eq(aiProviderKey.validationStatus, "valid"),
 							or(
-								isNull(aiProviderKey.cooldownUntil),
-								lte(aiProviderKey.cooldownUntil, now),
+								eq(aiProviderKey.validationStatus, "valid"),
+								and(
+									eq(aiProviderKey.validationStatus, "transient_failure"),
+									or(
+										isNull(aiProviderKey.cooldownUntil),
+										lte(aiProviderKey.cooldownUntil, now),
+									),
+								),
 							),
 						),
 					)

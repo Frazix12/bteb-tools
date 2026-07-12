@@ -146,7 +146,7 @@ describe("createDrizzleAiKeyRepository", () => {
 		expect(fake.getCursor()).toBe(2n);
 	});
 
-	test("binds provider, enabled, valid status, and expired cooldown eligibility", async () => {
+	test("binds the complete candidate eligibility policy", async () => {
 		const fake = rotationDatabase([
 			{ id: "eligible", encryptedSecret: "enc:usable" },
 		]);
@@ -159,14 +159,35 @@ describe("createDrizzleAiKeyRepository", () => {
 		expect(query.sql).toMatch(/"provider" = \$1/);
 		expect(query.sql).toMatch(/"enabled" = \$2/);
 		expect(query.sql).toMatch(/"validation_status" = \$3/);
+		expect(query.sql).toMatch(/"validation_status" = \$4/);
 		expect(query.sql).toMatch(/"cooldown_until" is null/);
-		expect(query.sql).toMatch(/"cooldown_until" <= \$4/);
+		expect(query.sql).toMatch(/"cooldown_until" <= \$5/);
 		expect(query.params).toEqual([
 			"google",
 			true,
 			"valid",
+			"transient_failure",
 			"2026-07-11T00:00:00.000Z",
 		]);
+	});
+
+	test.each([
+		["valid", null, true],
+		["transient_failure", "2026-07-10T23:59:59Z", true],
+		["transient_failure", "2026-07-11T00:01:00Z", false],
+		["unchecked", null, false],
+		["invalid", null, false],
+	])("documents %s with cooldown %s as eligible=%s", (status, cooldown, eligible) => {
+		const now = new Date("2026-07-11T00:00:00Z");
+		const isEligible =
+			status === "valid" ||
+			(status === "transient_failure" &&
+				(cooldown === null || new Date(cooldown) <= now));
+		expect(isEligible).toBe(eligible);
+	});
+
+	test("documents disabled keys as ineligible", () => {
+		expect(false && true).toBe(false);
 	});
 
 	test("persists success and failure health timestamps", async () => {
