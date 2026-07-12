@@ -28,3 +28,19 @@ Prior verification recorded 38 focused tests passing, 46 files / 223 full-unit t
 - Biome: `bun run check` — PASS, 161 files checked, no fixes applied.
 - Production build: `bun run build` — PASS. Vite emitted the existing informational >500 kB chunk warning.
 - Diff whitespace validation: `git diff --check` — PASS.
+
+Playwright/build emitted existing TanStack Router code-splitting warnings for named exports in the two new-document route files; they do not affect correctness and all checks passed.
+
+## Usage dashboard follow-up
+
+- Provider/model usage totals are rendered with request, nullable input/output token, and estimated-cost values.
+- Date and user usage breakdowns now have independent query pagination, totals, page metadata, and controls.
+- Nullable token totals render as `Unknown` instead of an empty value or zero.
+- Bootstrap demotion failures now identify the protected bootstrap account rather than incorrectly referring to the acting administrator's own account.
+
+Verification:
+
+- `pnpm exec vitest run src/features/admin/admin-dashboard.test.tsx src/features/admin/admin-repository.test.ts src/orpc/router/admin.test.ts`: 3 files, 14 tests passed.
+- `pnpm check`: passed, 142 files checked.
+- `pnpm exec tsc --noEmit`: passed.
+- `git diff --check`: passed.

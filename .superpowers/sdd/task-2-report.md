@@ -1,29 +1,109 @@
-# Task 2 report: per-cell overflow fitting
+# Task 2 report
 
-## RED
+## Google-only authentication
 
-- Added DOM tests for four required behaviors: fitting content remains at 19px, overflowing content shrinks repeatedly until it fits, persistent overflow stops at 11px, and a `ResizeObserver` notification triggers a fresh fit.
-- Ran `bun run test src/features/index-sheet/auto-fit-experiment-name.test.tsx`.
-- Result: failed as expected because `./auto-fit-experiment-name` did not exist. Vitest reported one failed suite and zero collected tests, with Vite's import-resolution error pointing at the missing component.
+Implemented Google-only authentication, safe local callback normalization, a credential-free login page, and `/signup` forwarding to `/login`. Better Auth now configures Google, exposes `user.role`, promotes the normalized bootstrap address at user creation and again on session creation for existing users, and never demotes admins.
 
-## GREEN
+Verification:
 
-- Implemented `AutoFitExperimentName` with a content ref and `useLayoutEffect`.
-- Each fit resets the inline size to 19px, measures `scrollHeight` against `clientHeight`, decrements one pixel at a time, and stops at either a fit or 11px.
-- Attached a `ResizeObserver` for refitting and disconnects it during cleanup. Initial fitting still works where `ResizeObserver` is unavailable.
-- Rendered `renderCaretMath(value)` as the fitter's children.
-- Integrated the component into every preview experiment-name cell.
-- Hid cell overflow and sized the inner fitter to the cell's available width and height without contributing extra row height.
+- `pnpm vitest run src/features/auth/auth-flow.test.ts src/features/auth/auth-page.test.tsx src/lib/session.test.ts` — 3 files, 7 tests passed.
+- `pnpm exec tsc --noEmit` — passed.
+- `pnpm biome check src/env.ts src/lib/auth.ts src/features/auth src/routes/login.tsx src/routes/signup.tsx` — passed after formatting.
+- `git diff --check` — passed.
 
-The first focused GREEN run passed the new component tests but exposed that the existing editor suite does not install `ResizeObserver`: all nine editor tests failed with `ReferenceError: ResizeObserver is not defined`. Added the minimal availability guard, then reran the exact focused command.
+Self-review: changes are limited to the Task 2 files. The OAuth component test confirms the provider/callback payload and absence of credential controls. Production deployment must supply `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`, and the Google console callback origin must match `BETTER_AUTH_URL`.
 
-- Ran `bun run test src/features/index-sheet/auto-fit-experiment-name.test.tsx src/features/index-sheet/index-sheet-editor.test.tsx`.
-- Result: 2 test files passed, 13 tests passed, 0 failed.
+## Redirect hardening follow-up
+
+- `pnpm vitest run src/features/auth/auth-flow.test.ts` — RED: 1 failed, 5 passed; `/\\evil.example` was incorrectly accepted.
+- `pnpm biome check src/features/auth/auth-flow.ts src/features/auth/auth-flow.test.ts` — passed, 2 files checked.
+- `pnpm vitest run src/features/auth/auth-flow.test.ts src/features/auth/auth-page.test.tsx src/lib/session.test.ts` — passed, 3 files and 9 tests.
+- `pnpm exec tsc --noEmit` — passed (exit 0).
+- `git diff --check` — passed (exit 0).
+
+The normalizer now parses against a fixed local origin, requires that origin, rejects decoded backslash/protocol-relative separator variants and malformed encoding, and returns only the parsed pathname, search, and hash.
+
+## Server-only key cryptography
+
+Implemented and verified the server-only managed API-key cipher.
+
+## Files
+
+- `src/features/ai-keys/crypto.ts` — `KeyCipher` and `createKeyCipher` implementation.
+- `src/features/ai-keys/crypto.test.ts` — focused cryptography and validation tests.
+
+## Decisions
+
+- Used only `node:crypto` primitives.
+- Derived independent 32-byte encryption and fingerprint keys with HKDF-SHA256, an empty salt, and fixed domain-separation strings.
+- Used AES-256-GCM with a fresh 12-byte nonce and the standard 16-byte authentication tag.
+- Serialized encrypted values as `v1.<nonce>.<ciphertext>.<tag>`, with all binary segments encoded as base64url.
+- Rejected invalid versions/segment counts and invalid nonce/tag lengths before attempting authenticated decryption.
+- Used HMAC-SHA256 encoded as base64url for deterministic, non-reversible fingerprints.
+- Applied the same blank-key guard to encryption, fingerprinting, and masking. Masking emits four bullets plus at most the final four plaintext characters.
+
+## TDD evidence and exact outputs
+
+### RED — focused test before implementation
+
+Command: `bun run test src/features/ai-keys/crypto.test.ts`
+
+```text
+$ vitest run src/features/ai-keys/crypto.test.ts
+
+ RUN  v4.1.10 /mnt/D/CODE/LINUX/CODE/web-apps/bteb-tools/.worktrees/gemini-api-key-rotation
+
+ ❯ src/features/ai-keys/crypto.test.ts (0 test)
+
+⎯⎯⎯⎯⎯⎯ Failed Suites 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/features/ai-keys/crypto.test.ts [ src/features/ai-keys/crypto.test.ts ]
+Error: Cannot find module './crypto' imported from /mnt/D/CODE/LINUX/CODE/web-apps/bteb-tools/.worktrees/gemini-api-key-rotation/src/features/ai-keys/crypto.test.ts
+ ❯ src/features/ai-keys/crypto.test.ts:3:1
+      1| import { describe, expect, it } from "vitest";
+      2|
+      3| import { createKeyCipher } from "./crypto";
+       | ^
+      4|
+      5| describe("createKeyCipher", () => {
+
+ Test Files  1 failed (1)
+      Tests  no tests
+   Duration  274ms
+
+error: script "test" exited with code 1
+```
+
+### GREEN — final verification
+
+Command: `bun run test src/features/ai-keys/crypto.test.ts && bun run check src/features/ai-keys/crypto.ts src/features/ai-keys/crypto.test.ts && bun x tsc --noEmit && git diff --check && git status --short`
+
+```text
+$ vitest run src/features/ai-keys/crypto.test.ts
+
+ RUN  v4.1.10 /mnt/D/CODE/LINUX/CODE/web-apps/bteb-tools/.worktrees/gemini-api-key-rotation
+
+ Test Files  1 passed (1)
+      Tests  10 passed (10)
+   Duration  319ms
+
+$ biome check src/features/ai-keys/crypto.ts src/features/ai-keys/crypto.test.ts
+Checked 2 files in 12ms. No fixes applied.
+?? src/features/ai-keys/
+```
+
+The combined command exited 0. `bun x tsc --noEmit` and `git diff --check` produced no output.
 
 ## Self-review
 
-- Requirements are covered directly by behavior tests and preview/CSS integration.
-- The fitting bounds are constants (19px and 11px), and the loop cannot decrement below the minimum.
-- Observer cleanup is present; no timers or global listeners are introduced.
-- The component retains caret-exponent rendering through the existing shared formatter.
-- Changes are limited to the four requested source/test files plus this report.
+- Confirmed encryption round trips without normalizing or trimming valid plaintext.
+- Confirmed repeated encryption differs because a new nonce is generated every time.
+- Confirmed mutation of each authenticated binary field (nonce, ciphertext, tag) causes rejection.
+- Confirmed malformed version and segment count are rejected before decryption.
+- Confirmed encryption and fingerprint subkeys are domain-separated.
+- Confirmed the implementation has no browser/runtime dependencies and imports cryptography exclusively from `node:crypto`.
+- Confirmed no files outside Task 2 source/tests and this report were changed.
+
+## Concerns
+
+None.
