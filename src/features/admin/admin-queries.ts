@@ -3,6 +3,7 @@ import { orpc } from "#/orpc/client";
 import type {
 	AdminAiKey,
 	AdminDocument,
+	AdminPreset,
 	AdminUser,
 	Page,
 	Summary,
@@ -32,8 +33,10 @@ export const adminDocumentsOptions = (page = 1) => ({
 	}),
 	select: (data: unknown) => data as Page<AdminDocument>,
 });
-export const adminPresetsOptions = (page = 1) =>
-	orpc.admin.presets.list.queryOptions({ input: { page, pageSize: 20 } });
+export const adminPresetsOptions = (page = 1) => ({
+	...orpc.admin.presets.list.queryOptions({ input: { page, pageSize: 20 } }),
+	select: (data: unknown) => data as Page<AdminPreset>,
+});
 export async function invalidateAdmin(q: QueryClient) {
 	await Promise.all([
 		q.invalidateQueries({ queryKey: orpc.admin.users.list.key() }),
@@ -52,3 +55,7 @@ export const invalidateAdminDocuments = (q: QueryClient) =>
 	q.invalidateQueries({ queryKey: orpc.admin.data.listDocuments.key() });
 export const invalidateAdminSummary = (q: QueryClient) =>
 	q.invalidateQueries({ queryKey: orpc.admin.data.summary.key() });
+export const invalidateAdminAiKeys = (q: QueryClient) =>
+	q.invalidateQueries({ queryKey: orpc.admin.aiKeys.list.key() });
+export const invalidateAdminPresets = (q: QueryClient) =>
+	q.invalidateQueries({ queryKey: orpc.admin.presets.list.key() });

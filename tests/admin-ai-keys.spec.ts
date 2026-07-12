@@ -58,7 +58,7 @@ test("rotates Gemini keys without rendering plaintext credentials", async ({
 		});
 	});
 
-	await page.goto("/admin");
+	await page.goto("/admin/ai-keys");
 	await page.getByLabel("Key label").fill("Primary");
 	await page.getByLabel("New API key").fill("test-secret-1234");
 	await page.getByRole("button", { name: "Add key" }).click();
