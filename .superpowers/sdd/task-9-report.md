@@ -44,4 +44,12 @@ Fresh follow-up evidence:
 - TypeScript: `bun x tsc --noEmit` — exit 0.
 - Production build: `bun run build` — exit 0; client, SSR, and Nitro output generated.
 
-Production inspection was retried against the generated server with `env PORT=4174 HOST=127.0.0.1 bun --env-file=.env.local --env-file=.env .output/server/index.mjs`. Nitro started successfully, but the Playwright admin storage state was rejected and `/admin` returned HTTP 200 at `/login?redirect=%2Fadmin`; therefore authenticated production admin screenshots could not be captured without creating a new production-server login session. The attempt was bounded and the server stopped cleanly. This is an external inspection limitation, not a claimed screenshot pass.
+The stale production-session cause was subsequently confirmed: Playwright global teardown had removed the fixture users and sessions before the manual inspection. Final Step 7 verification recreated the fixtures immediately before starting the generated server with the same database and auth secret, `BETTER_AUTH_URL=http://127.0.0.1:4174`, and matching bootstrap admin configuration. Fresh `test-results/auth/admin.json` authentication then loaded `/admin` successfully.
+
+Production inspection evidence:
+
+- Desktop Light: HTTP 200; `html.light`, `data-theme="light"`, `color-scheme: light`, and Light `aria-pressed="true"`; zero console errors; one admin navigation and no regular primary navigation; no horizontal overflow. Body/card/sidebar computed colors were distinct readable semantic light surfaces.
+- Desktop Dark: HTTP 200; `html.dark`, `data-theme="dark"`, `color-scheme: dark`, and Dark `aria-pressed="true"`; zero console errors; one admin navigation and no regular primary navigation; no horizontal overflow. Body/card/sidebar computed colors were distinct readable semantic dark surfaces.
+- Mobile Dark: HTTP 200; admin drawer visible; zero console errors; no regular primary navigation; document width exactly matched the 390px viewport with no overflow.
+- Screenshots were captured outside the repository at `/tmp/task-9-production-light.png`, `/tmp/task-9-production-dark.png`, and `/tmp/task-9-production-mobile.png`. Visual inspection confirmed no mixed black/light cards, unreadable muted text, duplicate navbar, or layout overflow.
+- The Nitro process stopped cleanly, and `tests/global-teardown.ts` completed successfully afterward to delete temporary Playwright users and sessions.
