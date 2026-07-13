@@ -99,6 +99,15 @@ test("uses and dismisses the mobile administration drawer", async ({ page }) => 
 });
 
 test("persists explicit themes and resolves system mode", async ({ page }) => {
+	const hydrationErrors: string[] = [];
+	page.on("console", (message) => {
+		if (
+			message.type() === "error" &&
+			message.text().includes("hydrated but some attributes")
+		) {
+			hydrationErrors.push(message.text());
+		}
+	});
 	await page.goto("/admin");
 	for (const mode of ["Dark", "Light"] as const) {
 		const button = page.getByRole("button", { name: mode, exact: true });
@@ -112,6 +121,9 @@ test("persists explicit themes and resolves system mode", async ({ page }) => {
 			.toBe("true");
 		await page.reload();
 		const expected = mode.toLowerCase();
+		await expect(
+			page.getByRole("button", { name: mode, exact: true }),
+		).toHaveAttribute("aria-pressed", "true");
 		await expect(page.locator("html")).toHaveClass(new RegExp(expected));
 		await expect(page.locator("html")).toHaveAttribute("data-theme", expected);
 		await expect
@@ -129,4 +141,5 @@ test("persists explicit themes and resolves system mode", async ({ page }) => {
 	await page.emulateMedia({ colorScheme: "light" });
 	await expect(page.locator("html")).toHaveClass(/light/);
 	await expect(page.locator("html")).toHaveAttribute("data-theme", "system");
+	expect(hydrationErrors).toEqual([]);
 });

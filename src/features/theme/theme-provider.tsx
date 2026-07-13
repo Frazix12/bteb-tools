@@ -3,6 +3,7 @@ import {
 	type ReactNode,
 	useContext,
 	useEffect,
+	useLayoutEffect,
 	useMemo,
 	useState,
 } from "react";
@@ -22,13 +23,17 @@ interface ThemeContextValue {
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-	const [mode, setMode] = useState<ThemeMode>(() =>
-		typeof window === "undefined"
-			? "system"
-			: readThemeMode(window.localStorage.getItem(THEME_STORAGE_KEY)),
-	);
+	const [mode, setMode] = useState<ThemeMode>("system");
+	const [initialized, setInitialized] = useState(false);
+
+	useLayoutEffect(() => {
+		setMode(readThemeMode(window.localStorage.getItem(THEME_STORAGE_KEY)));
+		setInitialized(true);
+	}, []);
 
 	useEffect(() => {
+		if (!initialized) return;
+
 		window.localStorage.setItem(THEME_STORAGE_KEY, mode);
 		applyTheme(mode);
 
@@ -39,7 +44,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 		mediaQuery.addEventListener("change", handleChange);
 
 		return () => mediaQuery.removeEventListener("change", handleChange);
-	}, [mode]);
+	}, [initialized, mode]);
 
 	const value = useMemo(() => ({ mode, setMode }), [mode]);
 

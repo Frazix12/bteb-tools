@@ -28,5 +28,20 @@ The equivalent dev-server browser coverage did verify desktop and mobile layouts
 
 ## Concerns observed
 
-- Reloading an explicit stored theme logs a React hydration attribute mismatch for the selected theme-toggle button: the server renders System while the client initially renders the stored mode. The pre-hydration script still applies the correct `html` class, `data-theme`, and `color-scheme`, and the browser assertions pass, but the warning remains an application concern outside this browser-coverage task.
 - TanStack Router reports existing code-splitting warnings for named exports in several route modules.
+
+## Hydration follow-up
+
+The stored-theme hydration concern is resolved. `ThemeProvider` now renders System deterministically on the server and first client pass, reads the stored mode in a layout effect, and enables persistence/root/media effects only after initialization. The inline initialization script remains responsible for applying the saved root class and `color-scheme` before hydration, so the synchronization does not introduce a wrong-color frame.
+
+Fresh follow-up evidence:
+
+- Theme hydration tests: `bun x vitest run src/features/theme/theme-provider.test.tsx src/features/theme/theme.test.ts` — exit 0, 2 files and 12 tests passed. The new Light and Dark cases hydrate server markup, require the saved control to be selected, and require no React console errors.
+- Full unit/component suite: `bun run test` — exit 0, 58 files and 274 tests passed in 33.98s.
+- Admin dashboard Playwright: `bun run test:visual -- tests/admin-dashboard.spec.ts` — exit 0, 3 passed in 34.8s. Reloads require the saved Light/Dark control to retain `aria-pressed="true"` and reject React's hydration-mismatch console signature.
+- Full browser/visual suite: `bun run test:visual` — exit 0, 22 passed in 52.4s.
+- Formatting/lint: `bun run check` — exit 0, 190 files checked.
+- TypeScript: `bun x tsc --noEmit` — exit 0.
+- Production build: `bun run build` — exit 0; client, SSR, and Nitro output generated.
+
+Production inspection was retried against the generated server with `env PORT=4174 HOST=127.0.0.1 bun --env-file=.env.local --env-file=.env .output/server/index.mjs`. Nitro started successfully, but the Playwright admin storage state was rejected and `/admin` returned HTTP 200 at `/login?redirect=%2Fadmin`; therefore authenticated production admin screenshots could not be captured without creating a new production-server login session. The attempt was bounded and the server stopped cleanly. This is an external inspection limitation, not a claimed screenshot pass.
