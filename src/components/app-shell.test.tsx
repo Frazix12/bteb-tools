@@ -1,9 +1,9 @@
 // @vitest-environment jsdom
 
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
-import { afterEach, describe, expect, test, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 
-let role: "user" | "admin" = "user";
+let role: "user" | "admin" | null = "user";
 let pathname = "/dashboard";
 
 vi.mock("@tanstack/react-router", () => ({
@@ -27,21 +27,47 @@ vi.mock("@tanstack/react-router", () => ({
 		options: { context: { queryClient: { clear: vi.fn() } } },
 	}),
 	useRouteContext: () => ({
-		user: {
-			role,
-			name: "Irfan",
-			email: "frazixgaming22@gmail.com",
-			image: null,
-		},
+		user: role
+			? {
+					role,
+					name: "Irfan",
+					email: "frazixgaming22@gmail.com",
+					image: null,
+				}
+			: null,
 	}),
 	useLocation: () => ({ pathname }),
 }));
 
-vi.mock("#/features/theme/theme-provider", () => ({
-	useTheme: () => ({ mode: "system", setMode: vi.fn() }),
-}));
-
+import { ThemeProvider } from "#/features/theme/theme-provider";
 import { AppShell } from "./app-shell";
+
+function renderAppShell() {
+	return render(
+		<ThemeProvider>
+			<AppShell />
+		</ThemeProvider>,
+	);
+}
+
+beforeEach(() => {
+	const values = new Map<string, string>();
+	Object.defineProperty(window, "localStorage", {
+		configurable: true,
+		value: {
+			getItem: (key: string) => values.get(key) ?? null,
+			setItem: (key: string, value: string) => values.set(key, value),
+		},
+	});
+	Object.defineProperty(window, "matchMedia", {
+		configurable: true,
+		value: vi.fn(() => ({
+			matches: false,
+			addEventListener: vi.fn(),
+			removeEventListener: vi.fn(),
+		})),
+	});
+});
 
 afterEach(() => {
 	cleanup();
@@ -52,7 +78,7 @@ afterEach(() => {
 describe("app shell navigation", () => {
 	test("shows standard navigation but hides admin from users", () => {
 		role = "user";
-		render(<AppShell />);
+		renderAppShell();
 		expect(screen.getByRole("link", { name: "Home" })).toBeTruthy();
 		expect(screen.getByRole("link", { name: "Browse Presets" })).toBeTruthy();
 		expect(document.querySelector("[data-centered-navigation]")).toBeTruthy();
@@ -60,9 +86,20 @@ describe("app shell navigation", () => {
 		expect(screen.queryByRole("link", { name: "Admin" })).toBeNull();
 	});
 
+	test("lets signed-out visitors choose a theme while retaining sign in", () => {
+		role = null;
+		renderAppShell();
+
+		expect(screen.getByRole("link", { name: "Sign in" })).toBeTruthy();
+		expect(screen.getByRole("group", { name: "Theme" })).toBeTruthy();
+		fireEvent.click(screen.getByRole("button", { name: "Dark" }));
+		expect(document.documentElement.classList.contains("dark")).toBe(true);
+		expect(window.localStorage.getItem("theme")).toBe("dark");
+	});
+
 	test("marks the current destination as active", () => {
 		pathname = "/presets";
-		render(<AppShell />);
+		renderAppShell();
 		expect(
 			screen
 				.getByRole("link", { name: "Browse Presets" })
@@ -75,7 +112,7 @@ describe("app shell navigation", () => {
 
 	test("opens an accessible profile menu with identity and red logout action", () => {
 		role = "user";
-		render(<AppShell />);
+		renderAppShell();
 		fireEvent.pointerDown(
 			screen.getByRole("button", { name: "Open user menu" }),
 			{ button: 0, ctrlKey: false },
@@ -90,7 +127,7 @@ describe("app shell navigation", () => {
 	test("shows admin navigation to administrators", () => {
 		pathname = "/dashboard";
 		role = "admin";
-		render(<AppShell />);
+		renderAppShell();
 		expect(screen.getByRole("link", { name: "Admin" })).toBeTruthy();
 	});
 
@@ -100,7 +137,7 @@ describe("app shell navigation", () => {
 	])("suppresses standard navigation on %s", (path) => {
 		pathname = path;
 		role = "admin";
-		render(<AppShell />);
+		renderAppShell();
 		expect(screen.queryByRole("link", { name: "Home" })).toBeNull();
 		expect(document.querySelector("header")).toBeNull();
 	});

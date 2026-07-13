@@ -21,33 +21,91 @@ const destinations = [
 ] as const;
 
 async function assertReadableColors(page: Page) {
-	const colors = await page.evaluate(() => {
+	const ratios = await page.evaluate(() => {
+		type Rgb = { red: number; green: number; blue: number; alpha: number };
+		const parse = (color: string): Rgb => {
+			const canvas = document.createElement("canvas");
+			canvas.width = 1;
+			canvas.height = 1;
+			const context = canvas.getContext("2d");
+			if (!context) throw new Error("Canvas color parsing is unavailable");
+			context.clearRect(0, 0, 1, 1);
+			context.fillStyle = color;
+			context.fillRect(0, 0, 1, 1);
+			const values = context.getImageData(0, 0, 1, 1).data;
+			return {
+				red: values[0],
+				green: values[1],
+				blue: values[2],
+				alpha: values[3] / 255,
+			};
+		};
+		const composite = (foreground: Rgb, background: Rgb): Rgb => {
+			const alpha =
+				foreground.alpha + background.alpha * (1 - foreground.alpha);
+			if (alpha === 0) return { red: 0, green: 0, blue: 0, alpha: 0 };
+			return {
+				red:
+					(foreground.red * foreground.alpha +
+						background.red * background.alpha * (1 - foreground.alpha)) /
+					alpha,
+				green:
+					(foreground.green * foreground.alpha +
+						background.green * background.alpha * (1 - foreground.alpha)) /
+					alpha,
+				blue:
+					(foreground.blue * foreground.alpha +
+						background.blue * background.alpha * (1 - foreground.alpha)) /
+					alpha,
+				alpha,
+			};
+		};
+		const luminance = ({ red, green, blue }: Rgb) => {
+			const linear = [red, green, blue].map((channel) => {
+				const value = channel / 255;
+				return value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
+			});
+			return 0.2126 * linear[0] + 0.7152 * linear[1] + 0.0722 * linear[2];
+		};
 		const read = (element: Element) => {
 			const style = getComputedStyle(element);
-			let background = style.backgroundColor;
+			let background = parse(style.backgroundColor);
 			let ancestor = element.parentElement;
-			while (background === "rgba(0, 0, 0, 0)" && ancestor) {
-				background = getComputedStyle(ancestor).backgroundColor;
+			while (background.alpha < 1 && ancestor) {
+				background = composite(
+					background,
+					parse(getComputedStyle(ancestor).backgroundColor),
+				);
 				ancestor = ancestor.parentElement;
 			}
-			return { background, foreground: style.color };
+			if (background.alpha < 1) {
+				background = composite(background, {
+					red: 255,
+					green: 255,
+					blue: 255,
+					alpha: 1,
+				});
+			}
+			const foreground = composite(parse(style.color), background);
+			const values = [luminance(foreground), luminance(background)].sort(
+				(a, b) => b - a,
+			);
+			return (values[0] + 0.05) / (values[1] + 0.05);
 		};
 		const required = (selector: string) => {
 			const element = document.querySelector(selector);
 			if (!element) throw new Error(`Missing color target: ${selector}`);
 			return element;
 		};
-		return [
-			read(document.body),
-			read(required("[data-metric]")),
-			read(required("aside")),
-			read(required("h1")),
-		];
+		return {
+			heading: read(required("h1")),
+			metricTitle: read(required('[data-metric] [data-slot="card-title"]')),
+			metricDetail: read(required("[data-metric] .text-muted-foreground")),
+			sidebarControl: read(required("aside button[aria-pressed]")),
+		};
 	});
-	for (const { background, foreground } of colors) {
-		expect(background).not.toBe("rgba(0, 0, 0, 0)");
-		expect(foreground).not.toBe("rgba(0, 0, 0, 0)");
-		expect(foreground).not.toBe(background);
+	for (const [target, ratio] of Object.entries(ratios)) {
+		expect(ratio, `${target} contrast ratio`).toBeGreaterThanOrEqual(4.5);
 	}
 }
 

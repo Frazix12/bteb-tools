@@ -10,6 +10,7 @@ import { FileText, House, Settings, Shield } from "lucide-react";
 
 import { Button } from "#/components/ui/button";
 import { UserMenu } from "#/components/user-menu";
+import { ThemeToggle } from "#/features/theme/theme-toggle";
 import { authClient } from "#/lib/auth-client";
 
 export function AppShell() {
@@ -83,7 +84,7 @@ export function AppShell() {
 							</Button>
 						)}
 					</div>
-					<div className="justify-self-end">
+					<div className="flex flex-wrap items-center justify-end gap-2 justify-self-end">
 						{user ? (
 							<UserMenu
 								user={user}
@@ -95,9 +96,12 @@ export function AppShell() {
 								}}
 							/>
 						) : (
-							<Button asChild>
-								<Link to="/login">Sign in</Link>
-							</Button>
+							<>
+								<ThemeToggle />
+								<Button asChild>
+									<Link to="/login">Sign in</Link>
+								</Button>
+							</>
 						)}
 					</div>
 				</nav>

@@ -142,3 +142,48 @@ test("reapplies media-query changes only while using system mode", () => {
 		expect.any(Function),
 	);
 });
+
+test("falls back to system mode when storage reads throw", () => {
+	Object.defineProperty(window, "localStorage", {
+		configurable: true,
+		value: {
+			getItem: () => {
+				throw new DOMException("Blocked", "SecurityError");
+			},
+			setItem: vi.fn(),
+		},
+	});
+
+	expect(() =>
+		render(
+			<ThemeProvider>
+				<Probe />
+			</ThemeProvider>,
+		),
+	).not.toThrow();
+	expect(screen.getByRole("button", { name: "system" })).toBeTruthy();
+	expect(document.documentElement.classList.contains("light")).toBe(true);
+});
+
+test("keeps theme changes in memory when storage writes throw", () => {
+	Object.defineProperty(window, "localStorage", {
+		configurable: true,
+		value: {
+			getItem: () => null,
+			setItem: () => {
+				throw new DOMException("Blocked", "SecurityError");
+			},
+		},
+	});
+
+	render(
+		<ThemeProvider>
+			<Probe />
+		</ThemeProvider>,
+	);
+	expect(() =>
+		fireEvent.click(screen.getByRole("button", { name: "system" })),
+	).not.toThrow();
+	expect(screen.getByRole("button", { name: "dark" })).toBeTruthy();
+	expect(document.documentElement.classList.contains("dark")).toBe(true);
+});

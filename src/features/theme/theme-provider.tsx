@@ -27,14 +27,24 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 	const [initialized, setInitialized] = useState(false);
 
 	useLayoutEffect(() => {
-		setMode(readThemeMode(window.localStorage.getItem(THEME_STORAGE_KEY)));
+		let storedMode: string | null = null;
+		try {
+			storedMode = window.localStorage.getItem(THEME_STORAGE_KEY);
+		} catch {
+			// Storage can be unavailable in privacy-restricted contexts.
+		}
+		setMode(readThemeMode(storedMode));
 		setInitialized(true);
 	}, []);
 
 	useEffect(() => {
 		if (!initialized) return;
 
-		window.localStorage.setItem(THEME_STORAGE_KEY, mode);
+		try {
+			window.localStorage.setItem(THEME_STORAGE_KEY, mode);
+		} catch {
+			// Keep the selected mode in memory when persistence is unavailable.
+		}
 		applyTheme(mode);
 
 		const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
