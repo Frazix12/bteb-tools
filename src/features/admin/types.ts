@@ -1,5 +1,5 @@
 import type { PublicAiKey } from "#/features/ai-keys/types";
-import type { DocumentType } from "#/features/documents/types";
+import type { DocumentData, DocumentType } from "#/features/documents/types";
 import type { CoverPageData, IndexSheetData } from "#/orpc/schemas/document";
 export type AdminAiKey = PublicAiKey;
 export type Page<T> = {
@@ -26,6 +26,12 @@ export type AdminDocument = {
 	ownerEmail: string;
 	type: DocumentType;
 	updatedAt: Date;
+};
+export type SavedDocument = {
+	id: string;
+	title: string;
+	type: DocumentType;
+	data: DocumentData;
 };
 export type AdminPreset = {
 	id: string;

@@ -54,7 +54,11 @@ export function AiKeysPanel({
 			description="Manage Gemini credentials without exposing stored secrets."
 			icon={<KeyRound aria-hidden="true" className="size-5" />}
 			action={
-				<Button disabled={pending || keys.length === 0} onClick={onValidateAll}>
+				<Button
+					disabled={pending || keys.length === 0}
+					onClick={onValidateAll}
+					size="sm"
+				>
 					Check all keys
 				</Button>
 			}
@@ -91,7 +95,9 @@ export function AiKeysPanel({
 					/>
 				</label>
 				<Button
+					className="self-end"
 					disabled={pending || !label.trim() || !apiKey.trim()}
+					size="sm"
 					type="submit"
 				>
 					Add key
@@ -141,38 +147,54 @@ export function AiKeysPanel({
 										}
 									/>
 									<Button
+										aria-label={`Replace ${key.label}`}
 										disabled={pending || !replacements[key.id]?.trim()}
 										onClick={() => {
 											onReplace(key.id, replacements[key.id]);
 											setReplacements((x) => ({ ...x, [key.id]: "" }));
 										}}
+										size="sm"
 									>
-										Replace {key.label}
+										Replace
 									</Button>
 								</td>
-								<td data-admin-actions className="space-x-2">
-									<Button
-										disabled={
-											pending ||
-											(key.validationStatus === "invalid" && !key.enabled)
-										}
-										onClick={() => onToggle(key, !key.enabled)}
-									>
-										{key.enabled ? "Disable" : "Enable"} {key.label}
-									</Button>
-									<Button disabled={pending} onClick={() => onValidate(key.id)}>
-										Validate {key.label}
-									</Button>
-									<Confirm
-										title={`Delete ${key.label}?`}
-										description="This permanently removes the credential."
-										action="Delete permanently"
-										onConfirm={() => onDelete(key.id)}
-									>
-										<Button variant="destructive" disabled={pending}>
-											Delete {key.label}
+								<td data-admin-actions>
+									<div className="flex flex-wrap gap-2">
+										<Button
+											aria-label={`${key.enabled ? "Disable" : "Enable"} ${key.label}`}
+											disabled={
+												pending ||
+												(key.validationStatus === "invalid" && !key.enabled)
+											}
+											onClick={() => onToggle(key, !key.enabled)}
+											size="sm"
+										>
+											{key.enabled ? "Disable" : "Enable"}
 										</Button>
-									</Confirm>
+										<Button
+											aria-label={`Validate ${key.label}`}
+											disabled={pending}
+											onClick={() => onValidate(key.id)}
+											size="sm"
+										>
+											Validate
+										</Button>
+										<Confirm
+											title={`Delete ${key.label}?`}
+											description="This permanently removes the credential."
+											action="Delete permanently"
+											onConfirm={() => onDelete(key.id)}
+										>
+											<Button
+												aria-label={`Delete ${key.label}`}
+												disabled={pending}
+												size="sm"
+												variant="destructive"
+											>
+												Delete
+											</Button>
+										</Confirm>
+									</div>
 								</td>
 							</tr>
 						))}

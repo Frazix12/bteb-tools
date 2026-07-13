@@ -215,16 +215,17 @@ describe("index sheet editor", () => {
 		const onSave = vi.fn().mockRejectedValue(new Error("Save unavailable"));
 		const onDirtyChange = vi.fn();
 		const print = vi.spyOn(window, "print").mockImplementation(() => undefined);
-		renderEditor({ onSave, onDirtyChange });
+		const { props } = renderEditor({ onSave, onDirtyChange });
 		fireEvent.change(screen.getByLabelText("Sheet title"), {
 			target: { value: "New title" },
 		});
 		expect(onDirtyChange).toHaveBeenLastCalledWith(true);
 		fireEvent.click(screen.getByRole("button", { name: "Save sheet" }));
 		expect(await screen.findByText("Save unavailable")).toBeTruthy();
-		expect(onSave).toHaveBeenCalledWith(
-			expect.objectContaining({ title: "New title" }),
-		);
+		expect(onSave).toHaveBeenCalledWith({
+			...props.initialData,
+			title: "New title",
+		});
 		fireEvent.click(
 			screen.getByRole("button", { name: "Print or save as PDF" }),
 		);

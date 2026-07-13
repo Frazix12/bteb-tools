@@ -3,7 +3,15 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, test, vi } from "vitest";
 import { BOOTSTRAP_ADMIN_EMAIL_DEFAULT } from "#/config/bootstrap-admin";
 import { DataPanel } from "./data-panel";
-import type { AdminDocument, AdminUser, Page, Summary, Usage } from "./types";
+import { PresetsPanel } from "./presets-panel";
+import type {
+	AdminDocument,
+	AdminPreset,
+	AdminUser,
+	Page,
+	Summary,
+	Usage,
+} from "./types";
 import { UsagePanel } from "./usage-panel";
 import { UsersPanel } from "./users-panel";
 
@@ -100,6 +108,27 @@ const documents: Page<AdminDocument> = {
 	page: 1,
 	pageSize: 20,
 };
+const presets: Page<AdminPreset> = {
+	items: [],
+	total: 0,
+	page: 1,
+	pageSize: 20,
+};
+const savedDocuments = [
+	{
+		id: "22222222-2222-4222-8222-222222222222",
+		title: "My index",
+		type: "index_sheet" as const,
+		data: {
+			schemaVersion: 1 as const,
+			exportedAt: "2026-07-10T08:00:00.000Z",
+			title: "Index title",
+			rowsPerPage: 10 as const,
+			showPageNo: true,
+			entries: [],
+		},
+	},
+];
 
 describe("admin core panels", () => {
 	test("protects only the configured bootstrap admin and owns users pagination", () => {
@@ -166,5 +195,31 @@ describe("admin core panels", () => {
 		expect(onDelete).toHaveBeenCalledWith(documents.items[0].id);
 		fireEvent.click(screen.getByRole("button", { name: "Next page" }));
 		expect(onPage).toHaveBeenCalledWith("documents", 2);
+	});
+	test("imports an admin's saved document into the preset form", () => {
+		render(
+			<PresetsPanel
+				data={presets}
+				savedDocuments={savedDocuments}
+				pending={false}
+				message={null}
+				onSave={vi.fn()}
+				onToggle={vi.fn()}
+				onDelete={vi.fn()}
+				onPage={vi.fn()}
+			/>,
+		);
+		fireEvent.change(screen.getByLabelText("Import saved document"), {
+			target: { value: savedDocuments[0].id },
+		});
+		expect(screen.getByLabelText("Title")).toHaveProperty("value", "My index");
+		expect(screen.getByLabelText("Type")).toHaveProperty(
+			"value",
+			"index_sheet",
+		);
+		expect(screen.getByLabelText("Preset data (JSON)")).toHaveProperty(
+			"value",
+			JSON.stringify(savedDocuments[0].data, null, 2),
+		);
 	});
 });

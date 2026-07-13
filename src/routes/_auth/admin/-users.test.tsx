@@ -56,7 +56,10 @@ vi.mock("#/orpc/client", () => ({
 	orpc: { admin: { users: { setRole: { call: vi.fn() } } } },
 }));
 
-import { UsersRoute, usersLoader } from "./users";
+import { Route, usersLoader } from "./users";
+
+const UsersRoute = (Route as unknown as { component: React.ComponentType })
+	.component;
 
 afterEach(() => {
 	cleanup();

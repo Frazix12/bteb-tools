@@ -28,10 +28,11 @@ async function asProcedureResult<T>(operation: () => Promise<T>) {
 export function createDocumentRouter(service: DocumentService) {
 	const list = protectedProcedure.input(z.object({})).handler(({ context }) =>
 		service.list(context.user.id).then((rows) =>
-			rows.map(({ id, type, title, createdAt, updatedAt }) => ({
+			rows.map(({ id, type, title, data, createdAt, updatedAt }) => ({
 				id,
 				type,
 				title,
+				data,
 				createdAt,
 				updatedAt,
 			})),

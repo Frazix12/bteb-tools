@@ -16,10 +16,12 @@ import type {
 	Page,
 	PageKind,
 	PresetInput,
+	SavedDocument,
 } from "./types";
 
 type Props = {
 	data: Page<AdminPreset>;
+	savedDocuments?: SavedDocument[];
 	onSave: (v: PresetInput, id?: string) => void;
 	onToggle: (p: AdminPreset, e: boolean) => void;
 	onDelete: (id: string) => void;
@@ -59,6 +61,7 @@ const empty: Draft = {
 };
 export function PresetsPanel({
 	data,
+	savedDocuments = [],
 	onSave,
 	onToggle,
 	onDelete,
@@ -86,6 +89,22 @@ export function PresetsPanel({
 		setForm({ ...value });
 		setEditId(p?.id);
 		setJson(JSON.stringify(value.data, null, 2));
+		setError("");
+	}
+	function importSavedDocument(id: string) {
+		const document = savedDocuments.find((item) => item.id === id);
+		if (!document) return;
+		const value: Draft = {
+			slug: "",
+			title: document.title,
+			description: "",
+			type: document.type,
+			enabled: true,
+			data: document.data,
+		};
+		setForm(value);
+		setEditId(undefined);
+		setJson(JSON.stringify(document.data, null, 2));
 		setError("");
 	}
 	function save() {
@@ -138,6 +157,26 @@ export function PresetsPanel({
 				</Button>
 			}
 		>
+			{savedDocuments.length > 0 && (
+				<div className="grid gap-2 rounded-xl border border-[var(--line)] bg-white/50 p-4">
+					<Label htmlFor="preset-import">Import saved document</Label>
+					<select
+						id="preset-import"
+						disabled={pending}
+						defaultValue=""
+						onChange={(event) => importSavedDocument(event.target.value)}
+					>
+						<option value="" disabled>
+							Choose a saved document
+						</option>
+						{savedDocuments.map((document) => (
+							<option key={document.id} value={document.id}>
+								{document.title}
+							</option>
+						))}
+					</select>
+				</div>
+			)}
 			{form && (
 				<div className="grid gap-3 rounded-xl border border-[var(--line)] bg-white/50 p-4 sm:grid-cols-2">
 					<Label htmlFor="preset-slug">Slug</Label>

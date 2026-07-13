@@ -69,16 +69,15 @@ vi.mock("#/features/presets/queries", () => ({
 }));
 
 import {
-	PresetDocumentState as CoverPresetState,
-	Route as CoverRoute,
+	CoverPresetDocumentState,
 	NewCoverPage,
-} from "#/routes/_auth/cover-page/new";
+} from "#/features/presets/new-cover-page";
 import {
-	PresetDocumentState as IndexPresetState,
-	Route as IndexRoute,
+	IndexPresetDocumentState,
 	NewIndexSheet,
-} from "#/routes/_auth/index-sheet/new";
-import { PresetCards, PresetsPage } from "#/routes/_auth/presets";
+} from "#/features/presets/new-index-sheet";
+import { PresetsPage } from "#/features/presets/presets-page";
+import { Route as PresetsRoute } from "#/routes/_auth/presets";
 
 afterEach(() => {
 	cleanup();
@@ -89,9 +88,20 @@ afterEach(() => {
 });
 
 describe("database-backed preset pages", () => {
+	test("route renders the real presets page", () => {
+		queryState.current = { isPending: false, data: [] };
+		routeState.user = null;
+		const Component = (
+			PresetsRoute as unknown as { component: React.ComponentType }
+		).component;
+		render(<Component />);
+		expect(screen.getByText("Start from a preset")).toBeTruthy();
+		expect(screen.queryByText(/Hello/)).toBeNull();
+	});
+
 	test("uses guest-safe instructions and sign-in navigation", () => {
 		queryState.current = { isPending: false, data: [] };
-		render(<PresetsPage />);
+		render(<PresetsPage user={null} />);
 		expect(screen.getByText(/then print or save as PDF/i)).toBeTruthy();
 		expect(
 			screen.getByRole("link", { name: /sign in/i }).getAttribute("href"),
@@ -101,29 +111,25 @@ describe("database-backed preset pages", () => {
 	test.each([
 		{
 			name: "cover page",
-			Route: CoverRoute,
 			Component: NewCoverPage,
 			propsSpy: coverEditorProps,
 			href: "/cover-page/new?preset=cover",
 		},
 		{
 			name: "index sheet",
-			Route: IndexRoute,
 			Component: NewIndexSheet,
 			propsSpy: indexEditorProps,
 			href: "/index-sheet/new?preset=index",
 		},
 	])("maps route authentication and the exact location for the $name editor", ({
-		Route,
 		Component,
 		propsSpy,
 		href,
 	}) => {
-		vi.mocked(Route.useSearch).mockReturnValue({});
 		queryState.current = { isPending: false, isError: false };
-		locationState.href = href;
-		routeState.user = null;
-		const view = render(<Component />);
+		const view = render(
+			<Component isAuthenticated={false} signInRedirect={href} />,
+		);
 		expect(propsSpy).toHaveBeenLastCalledWith(
 			expect.objectContaining({
 				canSave: false,
@@ -132,8 +138,7 @@ describe("database-backed preset pages", () => {
 			}),
 		);
 
-		routeState.user = { id: "user-1" };
-		view.rerender(<Component />);
+		view.rerender(<Component isAuthenticated={true} signInRedirect={href} />);
 		expect(propsSpy).toHaveBeenLastCalledWith(
 			expect.objectContaining({
 				canSave: true,
@@ -143,24 +148,24 @@ describe("database-backed preset pages", () => {
 		);
 	});
 	test("renders every enabled server row with an icon-labelled action", () => {
-		render(
-			<PresetCards
-				presets={[
-					{
-						slug: "cover",
-						title: "Server cover",
-						description: "Cover",
-						type: "cover_page",
-					},
-					{
-						slug: "index",
-						title: "Server index",
-						description: "Index",
-						type: "index_sheet",
-					},
-				]}
-			/>,
-		);
+		queryState.current = {
+			isPending: false,
+			data: [
+				{
+					slug: "cover",
+					title: "Server cover",
+					description: "Cover",
+					type: "cover_page",
+				},
+				{
+					slug: "index",
+					title: "Server index",
+					description: "Index",
+					type: "index_sheet",
+				},
+			],
+		};
+		render(<PresetsPage user={null} />);
 		expect(screen.getByText("Server cover")).toBeTruthy();
 		expect(screen.getByText("Server index")).toBeTruthy();
 		expect(screen.getAllByRole("link", { name: /use preset/i })).toHaveLength(
@@ -171,11 +176,11 @@ describe("database-backed preset pages", () => {
 	test("initializes each editor from fetched typed data", () => {
 		render(
 			<>
-				<CoverPresetState
+				<CoverPresetDocumentState
 					preset="cover"
 					data={{ instituteName: "Fetched institute" } as any}
 				/>
-				<IndexPresetState
+				<IndexPresetDocumentState
 					preset="index"
 					data={{ subjectName: "Fetched subject" } as any}
 				/>
@@ -186,20 +191,25 @@ describe("database-backed preset pages", () => {
 	});
 
 	test("shows a not-found recovery action instead of blank editor data", () => {
-		render(<CoverPresetState preset="missing" notFound />);
+		render(<CoverPresetDocumentState preset="missing" notFound />);
 		expect(screen.getByText(/preset not found/i)).toBeTruthy();
 		expect(screen.getByRole("link", { name: /start blank/i })).toBeTruthy();
 	});
 
 	test("route distinguishes NOT_FOUND from server errors and retries failures", () => {
-		vi.mocked(CoverRoute.useSearch).mockReturnValue({ preset: "missing" });
 		queryState.current = {
 			isPending: false,
 			isError: true,
 			error: { code: "NOT_FOUND" },
 			refetch: vi.fn(),
 		};
-		const view = render(<NewCoverPage />);
+		const view = render(
+			<NewCoverPage
+				isAuthenticated={true}
+				preset="missing"
+				signInRedirect="/current"
+			/>,
+		);
 		expect(screen.getByText(/preset not found/i)).toBeTruthy();
 
 		const refetch = vi.fn();
@@ -209,20 +219,31 @@ describe("database-backed preset pages", () => {
 			error: { code: "INTERNAL_SERVER_ERROR" },
 			refetch,
 		};
-		view.rerender(<NewCoverPage />);
+		view.rerender(
+			<NewCoverPage
+				isAuthenticated={true}
+				preset="missing"
+				signInRedirect="/current"
+			/>,
+		);
 		expect(screen.getByText(/could not load preset/i)).toBeTruthy();
 		fireEvent.click(screen.getByRole("button", { name: /retry/i }));
 		expect(refetch).toHaveBeenCalledOnce();
 	});
 
 	test("a result update does not overwrite edits for the same preset", () => {
-		vi.mocked(CoverRoute.useSearch).mockReturnValue({ preset: "cover" });
 		queryState.current = {
 			isPending: false,
 			isError: false,
 			data: { data: { instituteName: "First result" } },
 		};
-		const view = render(<NewCoverPage />);
+		const view = render(
+			<NewCoverPage
+				isAuthenticated={true}
+				preset="cover"
+				signInRedirect="/current"
+			/>,
+		);
 		const input = screen.getByRole("textbox", { name: /institute name/i });
 		fireEvent.change(input, { target: { value: "User edit" } });
 		queryState.current = {
@@ -230,19 +251,30 @@ describe("database-backed preset pages", () => {
 			isError: false,
 			data: { data: { instituteName: "Refetched result" } },
 		};
-		view.rerender(<NewCoverPage />);
+		view.rerender(
+			<NewCoverPage
+				isAuthenticated={true}
+				preset="cover"
+				signInRedirect="/current"
+			/>,
+		);
 		expect(screen.getByDisplayValue("User edit")).toBeTruthy();
 	});
 
 	test("index route treats authentication errors as load failures", () => {
-		vi.mocked(IndexRoute.useSearch).mockReturnValue({ preset: "index" });
 		queryState.current = {
 			isPending: false,
 			isError: true,
 			error: { code: "UNAUTHORIZED" },
 			refetch: vi.fn(),
 		};
-		render(<NewIndexSheet />);
+		render(
+			<NewIndexSheet
+				isAuthenticated={true}
+				preset="index"
+				signInRedirect="/current"
+			/>,
+		);
 		expect(screen.getByText(/could not load preset/i)).toBeTruthy();
 		expect(screen.queryByText(/preset not found/i)).toBeNull();
 	});

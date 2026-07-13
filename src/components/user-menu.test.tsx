@@ -33,6 +33,21 @@ beforeEach(() => {
 
 afterEach(cleanup);
 
+test("falls back when a profile image cannot load", () => {
+	render(
+		<ThemeProvider>
+			<UserMenu
+				user={{ name: "Irfan", email: "irfan@example.com", image: "/bad.png" }}
+				onLogout={vi.fn()}
+			/>
+		</ThemeProvider>,
+	);
+
+	fireEvent.error(document.querySelector("img") as HTMLImageElement);
+	expect(document.querySelector("img")).toBeNull();
+	expect(screen.getByRole("button", { name: "Open user menu" })).toBeTruthy();
+});
+
 test("selects and persists a theme with menu keyboard controls", async () => {
 	render(
 		<ThemeProvider>

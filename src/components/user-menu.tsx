@@ -1,5 +1,6 @@
 import { Check, LogOut, UserRound } from "lucide-react";
 import { DropdownMenu } from "radix-ui";
+import { useState } from "react";
 import { Button } from "#/components/ui/button";
 import type { ThemeMode } from "#/features/theme/theme";
 import { useTheme } from "#/features/theme/theme-provider";
@@ -18,6 +19,8 @@ export function UserMenu({
 	onLogout: () => void;
 }) {
 	const { mode, setMode } = useTheme();
+	const [failedImage, setFailedImage] = useState<string | null>(null);
+	const showImage = Boolean(user.image && failedImage !== user.image);
 
 	return (
 		<DropdownMenu.Root>
@@ -27,11 +30,12 @@ export function UserMenu({
 					className="size-10 rounded-full border-[var(--chip-line)] bg-[var(--chip-bg)] p-0"
 					variant="outline"
 				>
-					{user.image ? (
+					{showImage ? (
 						<img
 							alt=""
 							className="size-9 rounded-full object-cover"
-							src={user.image}
+							onError={() => setFailedImage(user.image ?? null)}
+							src={user.image ?? undefined}
 						/>
 					) : (
 						<UserRound aria-hidden="true" className="size-5" />

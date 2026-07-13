@@ -125,7 +125,11 @@ export function CoverPageEditor({
 								onApply={changeData}
 							/>
 							{canSave ? (
-								<Button disabled={isSaving} onClick={() => void save()}>
+								<Button
+									disabled={isSaving}
+									onClick={() => void save()}
+									type="button"
+								>
 									<Save />
 									{isSaving ? "Saving…" : "Save cover page"}
 								</Button>
@@ -135,7 +139,11 @@ export function CoverPageEditor({
 									Sign in to save
 								</SignInAction>
 							)}
-							<Button variant="outline" onClick={() => window.print()}>
+							<Button
+								variant="outline"
+								onClick={() => window.print()}
+								type="button"
+							>
 								<Printer />
 								Print or save as PDF
 							</Button>

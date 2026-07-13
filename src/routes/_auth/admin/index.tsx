@@ -17,7 +17,12 @@ function AdminOverviewRoute() {
 	const usage = useQuery(adminUsageOptions(1, 1));
 	const aiKeys = useQuery(adminAiKeysOptions());
 	const queries = [summary, usage, aiKeys];
-	if (queries.some((query) => query.isPending)) return <AdminPageLoading />;
+	if (queries.some((query) => query.isPending))
+		return (
+			<div className="page-wrap py-8 sm:py-10">
+				<AdminPageLoading />
+			</div>
+		);
 	if (
 		queries.some((query) => query.isError) ||
 		!summary.data ||
@@ -25,18 +30,22 @@ function AdminOverviewRoute() {
 		!aiKeys.data
 	) {
 		return (
-			<AdminPageError
-				onRetry={() =>
-					void Promise.all(queries.map((query) => query.refetch()))
-				}
-			/>
+			<div className="page-wrap py-8 sm:py-10">
+				<AdminPageError
+					onRetry={() =>
+						void Promise.all(queries.map((query) => query.refetch()))
+					}
+				/>
+			</div>
 		);
 	}
 	return (
-		<AdminOverview
-			summary={summary.data}
-			usage={usage.data}
-			aiKeys={aiKeys.data}
-		/>
+		<div className="page-wrap py-8 sm:py-10">
+			<AdminOverview
+				summary={summary.data}
+				usage={usage.data}
+				aiKeys={aiKeys.data}
+			/>
+		</div>
 	);
 }

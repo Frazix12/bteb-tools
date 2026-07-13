@@ -12,6 +12,7 @@ import {
 	invalidateAdminPresets,
 	invalidateAdminSummary,
 } from "#/features/admin/admin-queries";
+import { documentListOptions } from "#/features/documents/queries";
 import { PresetsPanel } from "#/features/admin/presets-panel";
 import type { AdminPreset, PresetInput } from "#/features/admin/types";
 import { useAdminMutation } from "#/features/admin/use-admin-mutation";
@@ -46,6 +47,7 @@ function runAction(action: PresetAction) {
 function PresetsRoute() {
 	const [page, setPage] = useState(1);
 	const presets = useQuery(adminPresetsOptions(page));
+	const documents = useQuery(documentListOptions());
 	const action = useAdminMutation({
 		mutationFn: runAction,
 		invalidate: async (client) => {
@@ -70,6 +72,7 @@ function PresetsRoute() {
 			) : (
 				<PresetsPanel
 					data={presets.data}
+					savedDocuments={documents.data ?? []}
 					pending={action.isPending}
 					message={action.message}
 					onSave={(value, id) =>

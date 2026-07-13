@@ -26,7 +26,7 @@ export async function usersLoader() {
 	return { bootstrapEmail: await getAdminBootstrapEmail() };
 }
 
-export function UsersRoute() {
+function UsersRoute() {
 	const { bootstrapEmail } = useLoaderData({ from: "/_auth/admin/users" });
 	const [page, setPage] = useState(1);
 	const query = useQuery(adminUsersOptions(page));

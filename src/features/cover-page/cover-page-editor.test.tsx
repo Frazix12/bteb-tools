@@ -164,16 +164,18 @@ describe("cover page editor", () => {
 		const onSave = vi.fn().mockRejectedValue(new Error("Save unavailable"));
 		const onDirtyChange = vi.fn();
 		const print = vi.spyOn(window, "print").mockImplementation(() => undefined);
-		renderEditor({ onSave, onDirtyChange });
+		const { props } = renderEditor({ onSave, onDirtyChange });
 		fireEvent.change(screen.getByLabelText("Document type"), {
 			target: { value: "Lab Report" },
 		});
 		expect(onDirtyChange).toHaveBeenLastCalledWith(true);
 		fireEvent.click(screen.getByRole("button", { name: "Save cover page" }));
 		expect(await screen.findByText("Save unavailable")).toBeTruthy();
-		expect(onSave).toHaveBeenCalledWith(
-			expect.objectContaining({ docType: "Lab Report", logoDataUrl: "" }),
-		);
+		expect(onSave).toHaveBeenCalledWith({
+			...props.initialData,
+			docType: "Lab Report",
+			logoDataUrl: "",
+		});
 		fireEvent.click(
 			screen.getByRole("button", { name: "Print or save as PDF" }),
 		);
