@@ -35,9 +35,10 @@ test("rotates Gemini keys without rendering plaintext credentials", async ({
 
 	await page.route("**/api/rpc/admin/aiKeys/**", async (route) => {
 		const operation = new URL(route.request().url()).pathname.split("/").at(-1);
-		const payload = route.request().postDataJSON() as
-			| { apiKey?: string; enabled?: boolean }
+		const body = route.request().postDataJSON() as
+			| { json?: { apiKey?: string; enabled?: boolean } }
 			| undefined;
+		const payload = body?.json;
 		if (payload?.apiKey) secret = payload.apiKey;
 		if (operation === "create") keys = [publicKey()];
 		if (operation === "replace") keys = [publicKey()];
@@ -46,15 +47,15 @@ test("rotates Gemini keys without rendering plaintext credentials", async ({
 		if (operation === "validateAll" && keys[0])
 			keys = [{ ...keys[0], validationStatus: "invalid", enabled: false }];
 		if (operation === "delete") keys = [];
+		const output =
+			operation === "list" || operation === "validateAll"
+				? keys
+				: operation === "delete"
+					? { deleted: true }
+					: keys[0];
 		await route.fulfill({
 			contentType: "application/json",
-			body: JSON.stringify(
-				operation === "list" || operation === "validateAll"
-					? keys
-					: operation === "delete"
-						? { deleted: true }
-						: keys[0],
-			),
+			body: JSON.stringify({ json: output }),
 		});
 	});
 

@@ -32,6 +32,10 @@ vi.mock("#/features/theme/theme-toggle", () => ({
 	ThemeToggle: () => <button type="button">Theme control</button>,
 }));
 
+vi.mock("#/components/user-menu", () => ({
+	UserMenu: () => <button type="button">User menu</button>,
+}));
+
 import { AdminShell } from "./admin-shell";
 
 afterEach(cleanup);

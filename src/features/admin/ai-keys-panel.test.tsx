@@ -85,7 +85,7 @@ test("marks invalid and cooling keys and prevents enabling invalid keys", () => 
 		id: "key-2",
 		label: "Cooling",
 		validationStatus: "transient_failure" as const,
-		cooldownUntil: new Date("2026-07-13T00:00:00Z"),
+		cooldownUntil: new Date(Date.now() + 60_000),
 	};
 	render(
 		<AiKeysPanel keys={[invalid, cooling]} pending={false} {...callbacks} />,

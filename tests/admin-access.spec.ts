@@ -13,25 +13,35 @@ const test = base.extend<{ role: "user" | "admin" }>({
 });
 
 test.describe("ordinary user", () => {
-	test("cannot navigate directly to admin", async ({ page }) => {
-		await page.goto("/admin");
-		await expect(page).toHaveURL(/\/dashboard$/);
-		await expect(page.getByRole("heading", { name: "Administration" })).toHaveCount(0);
-	});
+	for (const path of [
+		"/admin",
+		"/admin/users",
+		"/admin/usage",
+		"/admin/ai-keys",
+		"/admin/documents",
+		"/admin/presets",
+	]) {
+		test(`protects ${path}`, async ({ page }) => {
+			await page.goto(path);
+			await expect(page).toHaveURL(/\/dashboard$/);
+			await expect(
+				page.getByRole("navigation", { name: "Admin navigation" }),
+			).toHaveCount(0);
+		});
+	}
 });
 
 test.describe("admin", () => {
 	test.use({ role: "admin" });
 
-	test("sees every administration section", async ({ page }) => {
+	test("sees the administration overview", async ({ page }) => {
 		await page.goto("/admin");
-		for (const name of ["Users", "AI Usage", "Data", "Presets"]) {
-			await expect(page.getByRole("heading", { name, exact: true })).toBeVisible();
-		}
+		await expect(page.getByRole("heading", { name: "Overview" })).toBeVisible();
+		await expect(page.locator("[data-metric]")).toHaveCount(5);
 	});
 
 	test("sees public presets seeded in PostgreSQL", async ({ page }) => {
-		await page.goto("/admin");
+		await page.goto("/admin/presets");
 		for (const [title, slug] of [
 			["ISTT Cover Page", "istt-cover-page"],
 			["Math Index Sheet", "math-index-sheet"],
