@@ -1,3 +1,8 @@
+> [!WARNING]
+> **Hosted Version Currently Unavailable**
+>
+> The hosted version of this project is currently down and may not be accessible. You can still explore the source code in this repository.
+
 # BTEB Sheet Generator
 
 A Bun-powered TanStack Start application for creating, saving, and printing BTEB-style index sheets and cover pages. Documents are private to each authenticated user, and optional Gemini autofill always requires review before it changes a draft.
